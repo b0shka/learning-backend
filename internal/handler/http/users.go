@@ -33,7 +33,7 @@ type userEmailInput struct {
 
 type userSignInInput struct {
 	Email      string `json:"email" binding:"required"`
-	SecretCode int32  `json:"secret_code" bson:"secret_code" binding:"required"`
+	SecretCode int32  `json:"secret_code" bson:"secret_code" binding:"required,min=100000"`
 }
 
 type tokenResponse struct {
@@ -115,8 +115,8 @@ func (h *Handler) updateUser(c *gin.Context) {
 		h.newResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	inp.ID = id
 
+	inp.ID = id
 	if err = h.services.Users.Update(c, inp); err != nil {
 		h.newResponse(c, http.StatusInternalServerError, err.Error())
 		return

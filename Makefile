@@ -3,7 +3,7 @@ REGISTRY = b0shka
 API_IMAGE = backend
 TAG = stable
 
-.PHONY: build start run clean docker-build docker-run docker-push gen-repo gen-service
+.PHONY: build start run clean docker-build docker-run docker-push gen
 .DEFAULT_GOAL := build
 
 build:
@@ -31,10 +31,8 @@ docker-run:
 docker-push:
 	docker push ${REGISTRY}/${API_IMAGE}:${TAG}
 
-gen-repo:
+gen:
 	mockgen -source=internal/repository/repository.go \
-	-destination=internal/repository/mocks/mock_repository.go
-
-gen-service:
+	-destination=internal/repository/mocks/mock_repository.go && \
 	mockgen -source=internal/service/service.go \
 	-destination=internal/service/mocks/mock_service.go

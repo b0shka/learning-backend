@@ -27,9 +27,9 @@ func TestAddVerifyEmail(t *testing.T) {
 	timestamp := time.Now().Unix()
 	in := []domain.VerifyEmail{
 		{
-			Email:      "email@ya.ru",
-			SecretCode: "543234",
-			ExpiredAt:  timestamp + 300,
+			Email:          "email@ya.ru",
+			SecretCodeHash: "543234",
+			ExpiredAt:      timestamp + 300,
 		},
 	}
 
@@ -59,9 +59,9 @@ func TestGetVerifyEmail(t *testing.T) {
 	timestamp := time.Now().Unix()
 	expResp := []domain.VerifyEmail{
 		{
-			Email:      "email@ya.ru",
-			SecretCode: "543234",
-			ExpiredAt:  timestamp + 300,
+			Email:          "email@ya.ru",
+			SecretCodeHash: "543234",
+			ExpiredAt:      timestamp + 300,
 		},
 	}
 

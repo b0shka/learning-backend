@@ -79,9 +79,9 @@ func (s *UsersService) SendCodeEmail(ctx context.Context, email string) error {
 	}
 
 	verifyEmail := domain.VerifyEmail{
-		Email:      email,
-		SecretCode: secretCodeHash,
-		ExpiredAt:  time.Now().Unix() + int64(s.authConfig.SercetCodeLifetime),
+		Email:          email,
+		SecretCodeHash: secretCodeHash,
+		ExpiredAt:      time.Now().Unix() + int64(s.authConfig.SercetCodeLifetime),
 	}
 	return s.repo.AddVerifyEmail(ctx, verifyEmail)
 }
