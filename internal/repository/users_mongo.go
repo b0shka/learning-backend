@@ -56,14 +56,14 @@ func (r *UsersRepo) Get(ctx context.Context, identifier interface{}) (domain.Use
 	var user domain.User
 	filter := bson.M{}
 
-	switch _identifier := identifier.(type) {
+	switch identifier.(type) {
 	case string:
 		filter = bson.M{
-			"email": _identifier,
+			"email": identifier,
 		}
 	case primitive.ObjectID:
 		filter = bson.M{
-			"_id": _identifier,
+			"_id": identifier,
 		}
 	default:
 		return domain.User{}, domain.ErrIdentifier

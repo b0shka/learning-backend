@@ -1,78 +1,42 @@
 package logger
 
-import (
-	"fmt"
-	"io"
-	"os"
-	"path"
-	"runtime"
+import "github.com/sirupsen/logrus"
 
-	"github.com/sirupsen/logrus"
-)
-
-type writeHook struct {
-	Writer    []io.Writer
-	LogLevels []logrus.Level
+type Logger interface {
+	Debug(msg string, params map[string]interface{})
+	Info(msg string, params map[string]interface{})
+	Warn(msg string, params map[string]interface{})
+	Error(msg string, params map[string]interface{})
 }
 
-func (hook *writeHook) Fire(entry *logrus.Entry) error {
-	line, err := entry.String()
-	if err != nil {
-		return err
-	}
-
-	for _, w := range hook.Writer {
-		w.Write([]byte(line))
-	}
-	return nil
+func Debug(msg ...interface{}) {
+	logrus.Debug(msg...)
 }
 
-func (hook *writeHook) Levels() []logrus.Level {
-	return hook.LogLevels
+func Debugf(format string, args ...interface{}) {
+	logrus.Debugf(format, args...)
 }
 
-var e *logrus.Entry
-
-type Logger struct {
-	*logrus.Entry
+func Info(msg ...interface{}) {
+	logrus.Info(msg...)
 }
 
-func GetLogger() Logger {
-	return Logger{e}
+func Infof(format string, args ...interface{}) {
+	logrus.Infof(format, args...)
 }
 
-func (l *Logger) GetLoggerWithField(k string, v interface{}) Logger {
-	return Logger{l.WithField(k, v)}
+func Warn(msg ...interface{}) {
+	logrus.Warn(msg...)
 }
 
-func init() {
-	l := logrus.New()
-	l.SetReportCaller(true)
-	l.Formatter = &logrus.TextFormatter{
-		CallerPrettyfier: func(frame *runtime.Frame) (function string, file string) {
-			filename := path.Base(frame.File)
-			return fmt.Sprintf("%s()", frame.Function), fmt.Sprintf("%s:%d", filename, frame.Line)
-		},
-		DisableColors: false,
-		FullTimestamp: true,
-	}
+func Warnf(format string, args ...interface{}) {
+	logrus.Warnf(format, args...)
+}
 
-	err := os.MkdirAll("logs", 0744)
-	if err != nil {
-		panic(err)
-	}
+func Error(msg ...interface{}) {
+	logrus.Error(msg...)
+}
 
-	infoLog, err := os.OpenFile("logs/info.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0640)
-	if err != nil {
-		panic(err)
-	}
-
-	l.SetOutput(io.Discard)
-	l.AddHook(&writeHook{
-		Writer:    []io.Writer{infoLog, os.Stdout},
-		LogLevels: logrus.AllLevels,
-	})
-
-	l.SetLevel(logrus.DebugLevel)
-	e = logrus.NewEntry(l)
+func Errorf(format string, args ...interface{}) {
+	logrus.Errorf(format, args...)
 }

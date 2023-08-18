@@ -31,7 +31,7 @@ docker-run:
 docker-push:
 	docker push ${REGISTRY}/${API_IMAGE}:${TAG}
 
-gen:
+mock:
 	mockgen -source=internal/repository/repository.go \
 	-destination=internal/repository/mocks/mock_repository.go && \
 	mockgen -source=internal/service/service.go \

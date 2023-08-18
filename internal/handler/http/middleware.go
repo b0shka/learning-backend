@@ -30,7 +30,7 @@ func corsMiddleware(c *gin.Context) {
 func (h *Handler) userIdentity(c *gin.Context) {
 	id, err := h.parseAuthHeader(c)
 	if err != nil {
-		h.newResponse(c, http.StatusBadRequest, err.Error())
+		newResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 

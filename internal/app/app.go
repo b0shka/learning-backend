@@ -22,8 +22,6 @@ import (
 )
 
 func Run(configPath string) {
-	logger := logger.GetLogger()
-
 	cfg, err := config.InitConfig(configPath)
 	if err != nil {
 		logger.Error(err)
@@ -63,7 +61,7 @@ func Run(configPath string) {
 		AuthConfig:   cfg.Auth,
 	})
 
-	handlers := handler.NewHandler(services, tokenManager, logger)
+	handlers := handler.NewHandler(services, tokenManager)
 	routes := handlers.InitRoutes()
 	srv := server.NewServer(cfg, routes)
 

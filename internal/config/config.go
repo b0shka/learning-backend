@@ -62,8 +62,8 @@ type (
 	}
 )
 
-func InitConfig(path string) (*Config, error) {
-	viper.AddConfigPath(path)
+func InitConfig(configPath string) (*Config, error) {
+	viper.AddConfigPath(configPath)
 	viper.SetConfigName("main")
 	viper.SetConfigType("yaml")
 
