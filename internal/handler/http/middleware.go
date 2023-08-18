@@ -1,4 +1,4 @@
-package handler
+package http
 
 import (
 	"errors"
@@ -30,7 +30,7 @@ func corsMiddleware(c *gin.Context) {
 func (h *Handler) userIdentity(c *gin.Context) {
 	id, err := h.parseAuthHeader(c)
 	if err != nil {
-		newResponse(c, http.StatusBadRequest, err.Error())
+		newResponse(c, http.StatusUnauthorized, err.Error())
 		return
 	}
 

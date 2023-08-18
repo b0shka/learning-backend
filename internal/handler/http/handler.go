@@ -1,7 +1,8 @@
-package handler
+package http
 
 import (
 	"errors"
+	"net/http"
 
 	"github.com/b0shka/backend/internal/service"
 	"github.com/b0shka/backend/pkg/auth"
@@ -33,6 +34,10 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		gin.Logger(),
 		corsMiddleware,
 	)
+
+	router.GET("/ping", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
 
 	api := router.Group("/api")
 	{
