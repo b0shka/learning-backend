@@ -138,6 +138,13 @@ func TestHandler_userSignIn(t *testing.T) {
 			statusCode:   400,
 			responseBody: `{"message":"invalid input body"}`,
 		},
+		{
+			name:         "invalid secret code",
+			body:         `{"email":"","secret_code":12345}`,
+			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {},
+			statusCode:   400,
+			responseBody: `{"message":"invalid input body"}`,
+		},
 	}
 
 	for _, testCase := range tests {

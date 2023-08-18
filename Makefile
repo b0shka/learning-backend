@@ -16,7 +16,7 @@ run:
 	go run ./cmd/app/main.go
 
 test:
-	go test -v -race -count=1 ./...
+	export GIN_MODE=release && go test -v -race -cover -count=1 ./...
 
 clean:
 	rm .bin/${PROGRAM_NAME}

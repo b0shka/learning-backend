@@ -88,7 +88,9 @@ func TestHandler_userIdentity(t *testing.T) {
 
 			// testCase.mockBehavior(&handler.tokenManager, testCase.token)
 
+			// gin.SetMode(gin.TestMode)
 			router := gin.Default()
+
 			router.GET("/identity", handler.userIdentity, func(c *gin.Context) {
 				// id, _ := c.Get(userCtx)
 				c.Status(http.StatusOK)
