@@ -50,6 +50,15 @@ func TestHandler_sendCodeEmail(t *testing.T) {
 			statusCode:   400,
 			responseBody: `{"message":"invalid email"}`,
 		},
+		// {
+		// 	name: "error send code",
+		// 	body: `{"email":"email@ya.ru"}`,
+		// 	mockBehavior: func(s *mock_service.MockUsers, email string) {
+		// 		s.EXPECT().SendCodeEmail(gomock.Any(), email).Return(errors.New("Recipient address rejected: Access denied")).Times(1)
+		// 	},
+		// 	statusCode:   500,
+		// 	responseBody: `{"message":"Recipient address rejected: Access denied"}`,
+		// },
 	}
 
 	for _, testCase := range tests {

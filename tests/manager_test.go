@@ -15,7 +15,7 @@ func TestManager(t *testing.T) {
 		"",
 	}
 
-	const configPath = "configs"
+	const configPath = "../configs"
 	cfg, err := config.InitConfig(configPath)
 	if err != nil {
 		fmt.Println(err)
