@@ -1,12 +1,10 @@
 package http
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/b0shka/backend/internal/service"
 	"github.com/b0shka/backend/pkg/auth"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/gin-gonic/gin"
 )
@@ -47,16 +45,16 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	return router
 }
 
-func parseIdFromPath(c *gin.Context, param string) (primitive.ObjectID, error) {
-	idParam := c.Param(param)
-	if idParam == "" {
-		return primitive.ObjectID{}, errors.New("empty id param")
-	}
+// func parseIdFromPath(c *gin.Context, param string) (primitive.ObjectID, error) {
+// 	idParam := c.Param(param)
+// 	if idParam == "" {
+// 		return primitive.ObjectID{}, errors.New("empty id param")
+// 	}
 
-	id, err := primitive.ObjectIDFromHex(idParam)
-	if err != nil {
-		return primitive.ObjectID{}, errors.New("invalid id param")
-	}
+// 	id, err := primitive.ObjectIDFromHex(idParam)
+// 	if err != nil {
+// 		return primitive.ObjectID{}, errors.New("invalid id param")
+// 	}
 
-	return id, nil
-}
+// 	return id, nil
+// }

@@ -1,0 +1,20 @@
+http:
+  port: 80
+  maxHeaderBytes: 1
+  readTimeout: 10s
+  writeTimeout: 10s
+
+auth:
+  jwt:
+    accessTokenTTL: 720h
+  sercetCodeLifetime: 900
+
+smtp:
+  host: "smtp.gmail.com"
+  port: 587
+
+email:
+  templates:
+    verify_email: "./templates/verify_email.html"
+  subjects:
+    verify_email: "Код подтверждения для входа в аккаунт"

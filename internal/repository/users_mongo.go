@@ -54,7 +54,7 @@ func (r *UsersRepo) Create(ctx context.Context, user domain.User) error {
 
 func (r *UsersRepo) Get(ctx context.Context, identifier interface{}) (domain.User, error) {
 	var user domain.User
-	filter := bson.M{}
+	var filter bson.M
 
 	switch identifier.(type) {
 	case string:

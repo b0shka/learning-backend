@@ -3,7 +3,7 @@ REGISTRY = b0shka
 API_IMAGE = backend
 TAG = stable
 
-.PHONY: build start run clean docker-build docker-run docker-push gen
+.PHONY: build start run test lint clean docker-build docker-run docker-push gen
 .DEFAULT_GOAL := build
 
 build:
@@ -16,7 +16,14 @@ run:
 	go run ./cmd/app/main.go
 
 test:
-	export GIN_MODE=release && go test -v -race -cover -count=1 ./...
+	GIN_MODE=release go test --short -coverprofile=cover.out -v ./...
+#make test.coverage
+
+test.coverage:
+	go tool cover -func=cover.out | grep "total"
+
+lint:
+	golangci-lint run
 
 clean:
 	rm .bin/${PROGRAM_NAME}
@@ -32,7 +39,5 @@ docker-push:
 	docker push ${REGISTRY}/${API_IMAGE}:${TAG}
 
 mock:
-	mockgen -source=internal/repository/repository.go \
-	-destination=internal/repository/mocks/mock_repository.go && \
-	mockgen -source=internal/service/service.go \
-	-destination=internal/service/mocks/mock_service.go
+	mockgen -source=internal/repository/repository.go -destination=internal/repository/mocks/mock_repository.go
+	mockgen -source=internal/service/service.go -destination=internal/service/mocks/mock_service.go
