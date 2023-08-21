@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net/http/httptest"
 	"testing"
@@ -14,6 +15,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+var errInternalServErr = errors.New("test: internal server error")
 
 func TestHandler_sendCodeEmail(t *testing.T) {
 	type mockBehavior func(s *mock_service.MockUsers, email string)
@@ -31,10 +34,20 @@ func TestHandler_sendCodeEmail(t *testing.T) {
 			body:  `{"email":"email@ya.ru"}`,
 			email: "email@ya.ru",
 			mockBehavior: func(s *mock_service.MockUsers, email string) {
-				s.EXPECT().SendCodeEmail(gomock.Any(), email).Return(nil).Times(1)
+				s.EXPECT().SendCodeEmail(gomock.Any(), email).Return(nil)
 			},
 			statusCode:   200,
 			responseBody: "",
+		},
+		{
+			name: "error send code",
+			body: `{"email":"email@ya.ru"}`,
+			mockBehavior: func(s *mock_service.MockUsers, email string) {
+				s.EXPECT().SendCodeEmail(gomock.Any(), gomock.Any()).
+					Return(errInternalServErr)
+			},
+			statusCode:   500,
+			responseBody: fmt.Sprintf(`{"message":"%s"}`, errInternalServErr),
 		},
 		{
 			name:         "empty fields",
@@ -48,17 +61,8 @@ func TestHandler_sendCodeEmail(t *testing.T) {
 			body:         `{"email":"email"}`,
 			mockBehavior: func(s *mock_service.MockUsers, email string) {},
 			statusCode:   400,
-			responseBody: `{"message":"invalid email"}`,
+			responseBody: `{"message":"invalid input body"}`,
 		},
-		// {
-		// 	name: "error send code",
-		// 	body: `{"email":"email@ya.ru"}`,
-		// 	mockBehavior: func(s *mock_service.MockUsers, email string) {
-		// 		s.EXPECT().SendCodeEmail(gomock.Any(), email).Return(errors.New("Recipient address rejected: Access denied")).Times(1)
-		// 	},
-		// 	statusCode:   500,
-		// 	responseBody: `{"message":"Recipient address rejected: Access denied"}`,
-		// },
 	}
 
 	for _, testCase := range tests {
@@ -111,11 +115,43 @@ func TestHandler_userSignIn(t *testing.T) {
 			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {
 				s.EXPECT().
 					SignIn(gomock.Any(), input).
-					Return(service.Tokens{AccessToken: "access_token"}, nil).
-					Times(1)
+					Return(service.Tokens{AccessToken: "access_token"}, nil)
 			},
 			statusCode:   200,
 			responseBody: `{"access_token":"access_token"}`,
+		},
+		{
+			name: "error sign in",
+			body: `{"email":"email@ya.ru","secret_code":123456}`,
+			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {
+				s.EXPECT().
+					SignIn(gomock.Any(), gomock.Any()).
+					Return(service.Tokens{}, errInternalServErr)
+			},
+			statusCode:   500,
+			responseBody: fmt.Sprintf(`{"message":"%s"}`, errInternalServErr),
+		},
+		{
+			name: "error invalid secret code",
+			body: `{"email":"email@ya.ru","secret_code":123456}`,
+			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {
+				s.EXPECT().
+					SignIn(gomock.Any(), gomock.Any()).
+					Return(service.Tokens{}, domain.ErrSecretCodeInvalid)
+			},
+			statusCode:   400,
+			responseBody: fmt.Sprintf(`{"message":"%s"}`, domain.ErrSecretCodeInvalid),
+		},
+		{
+			name: "error expired secret code",
+			body: `{"email":"email@ya.ru","secret_code":123456}`,
+			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {
+				s.EXPECT().
+					SignIn(gomock.Any(), gomock.Any()).
+					Return(service.Tokens{}, domain.ErrSecretCodeExpired)
+			},
+			statusCode:   400,
+			responseBody: fmt.Sprintf(`{"message":"%s"}`, domain.ErrSecretCodeExpired),
 		},
 		{
 			name:         "empty fields",
@@ -139,7 +175,7 @@ func TestHandler_userSignIn(t *testing.T) {
 			responseBody: `{"message":"invalid input body"}`,
 		},
 		{
-			name:         "invalid secret code",
+			name:         "invalid input secret code",
 			body:         `{"email":"","secret_code":12345}`,
 			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {},
 			statusCode:   400,
@@ -201,11 +237,21 @@ func TestHandler_getUserById(t *testing.T) {
 						Photo:     "",
 						Name:      "Vanya",
 						CreatedAt: 1692272560,
-					}, nil).
-					Times(1)
+					}, nil)
 			},
 			statusCode:   200,
 			responseBody: fmt.Sprintf(`{"id":"%s","email":"email@ya.ru","photo":"","name":"Vanya","created_at":1692272560}`, userId.Hex()),
+		},
+		{
+			name:   "error get user",
+			userId: userId,
+			mockBehavior: func(s *mock_service.MockUsers, userId primitive.ObjectID) {
+				s.EXPECT().
+					Get(gomock.Any(), userId).
+					Return(domain.User{}, errInternalServErr)
+			},
+			statusCode:   500,
+			responseBody: fmt.Sprintf(`{"message":"%s"}`, errInternalServErr),
 		},
 	}
 
@@ -262,7 +308,7 @@ func TestHandler_updateUser(t *testing.T) {
 				Name:  "Vanya",
 			},
 			mockBehavior: func(s *mock_service.MockUsers, user domain.UserUpdate) {
-				s.EXPECT().Update(gomock.Any(), user).Return(nil).Times(1)
+				s.EXPECT().Update(gomock.Any(), user).Return(nil)
 			},
 			statusCode:   200,
 			responseBody: "",
@@ -276,10 +322,24 @@ func TestHandler_updateUser(t *testing.T) {
 				Name:  "Vanya",
 			},
 			mockBehavior: func(s *mock_service.MockUsers, user domain.UserUpdate) {
-				s.EXPECT().Update(gomock.Any(), user).Return(nil).Times(1)
+				s.EXPECT().Update(gomock.Any(), user).Return(nil)
 			},
 			statusCode:   200,
 			responseBody: "",
+		},
+		{
+			name: "error update user",
+			body: `{"photo":"","name":"Vanya"}`,
+			user: domain.UserUpdate{
+				ID:    userId,
+				Photo: "",
+				Name:  "Vanya",
+			},
+			mockBehavior: func(s *mock_service.MockUsers, user domain.UserUpdate) {
+				s.EXPECT().Update(gomock.Any(), user).Return(errInternalServErr)
+			},
+			statusCode:   500,
+			responseBody: fmt.Sprintf(`{"message":"%s"}`, errInternalServErr),
 		},
 		{
 			name:         "empty fields",

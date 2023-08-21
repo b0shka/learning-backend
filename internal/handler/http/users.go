@@ -6,7 +6,6 @@ import (
 
 	"github.com/b0shka/backend/internal/domain"
 	"github.com/b0shka/backend/internal/service"
-	"github.com/badoux/checkmail"
 
 	"github.com/gin-gonic/gin"
 )
@@ -29,11 +28,11 @@ func (h *Handler) initUsersRoutes(api *gin.RouterGroup) {
 }
 
 type userEmailInput struct {
-	Email string `json:"email" binding:"required"`
+	Email string `json:"email" binding:"required,email"`
 }
 
 type userSignInInput struct {
-	Email      string `json:"email" binding:"required"`
+	Email      string `json:"email" binding:"required,email"`
 	SecretCode int32  `json:"secret_code" bson:"secret_code" binding:"required,min=100000"`
 }
 
@@ -48,13 +47,7 @@ func (h *Handler) sendCodeEmail(c *gin.Context) {
 		return
 	}
 
-	err := checkmail.ValidateFormat(inp.Email)
-	if err != nil {
-		newResponse(c, http.StatusBadRequest, domain.ErrInvalidEmail.Error())
-		return
-	}
-
-	err = h.services.Users.SendCodeEmail(c, inp.Email)
+	err := h.services.Users.SendCodeEmail(c, inp.Email)
 	if err != nil {
 		newResponse(c, http.StatusInternalServerError, err.Error())
 		return
