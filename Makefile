@@ -10,14 +10,14 @@ build:
 	go mod download && CGO_ENABLED=0 GOOS=linux go build -o ./.bin/${PROGRAM_NAME} ./cmd/app/main.go
 
 start: build
-	.bin/app
+	APP_ENV="local" .bin/app
 
 run:
 	go run ./cmd/app/main.go
 
 test:
 	GIN_MODE=release go test --short -coverprofile=cover.out -v ./...
-#make test.coverage
+	make test.coverage
 
 test.coverage:
 	go tool cover -func=cover.out | grep "total"
@@ -27,7 +27,6 @@ lint:
 
 clean:
 	rm .bin/${PROGRAM_NAME}
-	rmdir .bin
 
 docker-build:
 	docker build -f deploy/Dockerfile -t ${REGISTRY}/${API_IMAGE}:${TAG} .

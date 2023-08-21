@@ -27,7 +27,6 @@ func Run(configPath string) {
 		logger.Error(err)
 		return
 	}
-	logger.Infof("Config: %+v", cfg)
 
 	mongoClient, err := mongodb.NewClient(cfg.Mongo.URI)
 	if err != nil {

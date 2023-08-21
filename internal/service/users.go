@@ -108,13 +108,17 @@ func (s *UsersService) SignIn(ctx context.Context, inp UserSignInInput) (Tokens,
 		return Tokens{}, err
 	}
 
-	err = s.createIfNotExist(ctx, inp.Email)
-	if err != nil {
-		return Tokens{}, err
-	}
-
 	user, err := s.repo.Get(ctx, inp.Email)
 	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			err := s.repo.Create(ctx, domain.User{
+				Email:     inp.Email,
+				CreatedAt: time.Now().Unix(),
+			})
+			if err != nil {
+				return Tokens{}, err
+			}
+		}
 		return Tokens{}, err
 	}
 
@@ -136,21 +140,6 @@ func (s *UsersService) createSession(id primitive.ObjectID) (Tokens, error) {
 	}
 
 	return res, nil
-}
-
-func (s *UsersService) createIfNotExist(ctx context.Context, email string) error {
-	_, err := s.repo.Get(ctx, email)
-	if err != nil {
-		if errors.Is(err, domain.ErrUserNotFound) {
-			return s.repo.Create(ctx, domain.User{
-				Email:     email,
-				CreatedAt: time.Now().Unix(),
-			})
-		}
-		return err
-	}
-
-	return nil
 }
 
 func (s *UsersService) Get(ctx context.Context, identifier interface{}) (domain.User, error) {
