@@ -146,6 +146,6 @@ func (s *UsersService) Get(ctx context.Context, identifier interface{}) (domain.
 	return s.repo.Get(ctx, identifier)
 }
 
-func (s *UsersService) Update(ctx context.Context, user domain.UserUpdate) error {
-	return s.repo.Update(ctx, user)
+func (s *UsersService) Update(ctx context.Context, id primitive.ObjectID, user domain.UserUpdate) error {
+	return s.repo.Update(ctx, id, user)
 }

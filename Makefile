@@ -3,8 +3,8 @@ REGISTRY = b0shka
 API_IMAGE = backend
 TAG = stable
 
-.PHONY: build start run test lint clean docker-build docker-run docker-push gen
-.DEFAULT_GOAL := build
+.PHONY: build start run clean test lint swag docker-build docker-run docker-push gen
+.DEFAULT_GOAL := start
 
 build:
 	go mod download && CGO_ENABLED=0 GOOS=linux go build -o ./.bin/${PROGRAM_NAME} ./cmd/app/main.go
@@ -14,6 +14,9 @@ start: build
 
 run:
 	go run ./cmd/app/main.go
+
+clean:
+	rm .bin/${PROGRAM_NAME}
 
 test:
 	GIN_MODE=release go test --short -coverprofile=cover.out -v ./...
@@ -25,14 +28,15 @@ test.coverage:
 lint:
 	golangci-lint run
 
-clean:
-	rm .bin/${PROGRAM_NAME}
+swag:
+	${HOME}/go/bin/swag init -g internal/app/app.go
+# ${HOME}/go/bin/swag init -g ./internal/app/app.go -o ./docs
 
 docker-build:
 	docker build -f deploy/Dockerfile -t ${REGISTRY}/${API_IMAGE}:${TAG} .
 
 docker-run:
-	docker run -d -p 8000:8000 -e GIN_MODE=release --rm --name ${API_IMAGE} ${REGISTRY}/${API_IMAGE}:${TAG}
+	docker run -d -p 8080:8080 -e GIN_MODE=release --rm --name ${API_IMAGE} ${REGISTRY}/${API_IMAGE}:${TAG}
 
 docker-push:
 	docker push ${REGISTRY}/${API_IMAGE}:${TAG}

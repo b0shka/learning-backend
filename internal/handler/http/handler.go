@@ -1,12 +1,18 @@
 package http
 
 import (
+	"fmt"
 	"net/http"
 
+	"github.com/b0shka/backend/docs"
+	"github.com/b0shka/backend/internal/config"
 	"github.com/b0shka/backend/internal/service"
 	"github.com/b0shka/backend/pkg/auth"
 
+	_ "github.com/b0shka/backend/docs"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 type Handler struct {
@@ -24,7 +30,7 @@ func NewHandler(
 	}
 }
 
-func (h *Handler) InitRoutes() *gin.Engine {
+func (h *Handler) InitRoutes(cfg *config.Config) *gin.Engine {
 	router := gin.Default()
 
 	router.Use(
@@ -32,6 +38,9 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		gin.Logger(),
 		corsMiddleware,
 	)
+
+	docs.SwaggerInfo.Host = fmt.Sprintf("%s:%s", cfg.HTTP.Host, cfg.HTTP.Port)
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.GET("/ping", func(c *gin.Context) {
 		c.Status(http.StatusOK)

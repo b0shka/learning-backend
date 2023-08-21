@@ -14,7 +14,7 @@ type Users interface {
 	RemoveVerifyEmail(ctx context.Context, id primitive.ObjectID) error
 	Create(ctx context.Context, user domain.User) error
 	Get(ctx context.Context, identifier interface{}) (domain.User, error)
-	Update(ctx context.Context, user domain.UserUpdate) error
+	Update(ctx context.Context, id primitive.ObjectID, user domain.UserUpdate) error
 }
 
 type Repositories struct {

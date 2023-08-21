@@ -327,13 +327,14 @@ func TestHandler_getUserById(t *testing.T) {
 }
 
 func TestHandler_updateUser(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockUsers, user domain.UserUpdate)
+	type mockBehavior func(s *mock_service.MockUsers, userId primitive.ObjectID, user domain.UserUpdate)
 
 	userId := primitive.NewObjectID()
 
 	tests := []struct {
 		name         string
 		body         gin.H
+		userId       primitive.ObjectID
 		user         domain.UserUpdate
 		mockBehavior mockBehavior
 		statusCode   int
@@ -345,13 +346,13 @@ func TestHandler_updateUser(t *testing.T) {
 				"photo": "",
 				"name":  "Vanya",
 			},
+			userId: userId,
 			user: domain.UserUpdate{
-				ID:    userId,
 				Photo: "",
 				Name:  "Vanya",
 			},
-			mockBehavior: func(s *mock_service.MockUsers, user domain.UserUpdate) {
-				s.EXPECT().Update(gomock.Any(), user).Return(nil)
+			mockBehavior: func(s *mock_service.MockUsers, userId primitive.ObjectID, user domain.UserUpdate) {
+				s.EXPECT().Update(gomock.Any(), userId, user).Return(nil)
 			},
 			statusCode:   200,
 			responseBody: "",
@@ -362,13 +363,13 @@ func TestHandler_updateUser(t *testing.T) {
 				"photo": "https://photo.png",
 				"name":  "Vanya",
 			},
+			userId: userId,
 			user: domain.UserUpdate{
-				ID:    userId,
 				Photo: "https://photo.png",
 				Name:  "Vanya",
 			},
-			mockBehavior: func(s *mock_service.MockUsers, user domain.UserUpdate) {
-				s.EXPECT().Update(gomock.Any(), user).Return(nil)
+			mockBehavior: func(s *mock_service.MockUsers, userId primitive.ObjectID, user domain.UserUpdate) {
+				s.EXPECT().Update(gomock.Any(), userId, user).Return(nil)
 			},
 			statusCode:   200,
 			responseBody: "",
@@ -379,13 +380,13 @@ func TestHandler_updateUser(t *testing.T) {
 				"photo": "",
 				"name":  "Vanya",
 			},
+			userId: userId,
 			user: domain.UserUpdate{
-				ID:    userId,
 				Photo: "",
 				Name:  "Vanya",
 			},
-			mockBehavior: func(s *mock_service.MockUsers, user domain.UserUpdate) {
-				s.EXPECT().Update(gomock.Any(), user).Return(errInternalServErr)
+			mockBehavior: func(s *mock_service.MockUsers, userId primitive.ObjectID, user domain.UserUpdate) {
+				s.EXPECT().Update(gomock.Any(), userId, user).Return(errInternalServErr)
 			},
 			statusCode:   500,
 			responseBody: fmt.Sprintf(`{"message":"%s"}`, errInternalServErr),
@@ -396,7 +397,7 @@ func TestHandler_updateUser(t *testing.T) {
 				"photo": "",
 				"name":  "",
 			},
-			mockBehavior: func(s *mock_service.MockUsers, user domain.UserUpdate) {},
+			mockBehavior: func(s *mock_service.MockUsers, userId primitive.ObjectID, user domain.UserUpdate) {},
 			statusCode:   400,
 			responseBody: `{"message":"invalid input body"}`,
 		},
@@ -408,14 +409,14 @@ func TestHandler_updateUser(t *testing.T) {
 			defer mockCtl.Finish()
 
 			usersService := mock_service.NewMockUsers(mockCtl)
-			testCase.mockBehavior(usersService, testCase.user)
+			testCase.mockBehavior(usersService, testCase.userId, testCase.user)
 
 			services := &service.Services{Users: usersService}
 			handler := Handler{services: services}
 
 			router := gin.Default()
 			router.POST("/update", func(c *gin.Context) {
-				c.Set(userCtx, testCase.user.ID.Hex())
+				c.Set(userCtx, userId.Hex())
 			}, handler.updateUser)
 
 			data, err := json.Marshal(testCase.body)

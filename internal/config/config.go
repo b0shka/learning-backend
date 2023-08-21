@@ -52,6 +52,7 @@ type (
 	}
 
 	HTTPConfig struct {
+		Host               string        `mapstructure:"HTTP_HOST"`
 		Port               string        `mapstructure:"port"`
 		MaxHeaderMegabytes int           `mapstructure:"maxHeaderBytes"`
 		ReadTimeout        time.Duration `mapstructure:"readTimeout"`

@@ -177,9 +177,9 @@ func TestUsersService_Update(t *testing.T) {
 	userService, userRepo := mockUserService(t)
 
 	ctx := context.Background()
-	userRepo.EXPECT().Update(ctx, gomock.Any())
+	userRepo.EXPECT().Update(ctx, gomock.Any(), gomock.Any())
 
-	err := userService.Update(ctx, domain.UserUpdate{})
+	err := userService.Update(ctx, primitive.NewObjectID(), domain.UserUpdate{})
 	require.NoError(t, err)
 }
 
@@ -187,8 +187,8 @@ func TestUsersService_UpdateErr(t *testing.T) {
 	userService, userRepo := mockUserService(t)
 
 	ctx := context.Background()
-	userRepo.EXPECT().Update(ctx, gomock.Any()).Return(errInternalServErr)
+	userRepo.EXPECT().Update(ctx, gomock.Any(), gomock.Any()).Return(errInternalServErr)
 
-	err := userService.Update(ctx, domain.UserUpdate{})
+	err := userService.Update(ctx, primitive.NewObjectID(), domain.UserUpdate{})
 	require.True(t, errors.Is(err, errInternalServErr))
 }

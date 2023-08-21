@@ -21,6 +21,17 @@ import (
 	"github.com/b0shka/backend/pkg/logger"
 )
 
+//	@title			Service API
+//	@version		1.0
+//	@description	REST API for Service App
+
+//	@host		localhost:8080
+//	@BasePath	/api
+
+//	@securityDefinitions.apikey	UsersAuth
+//	@in							header
+//	@name						Authorization
+
 func Run(configPath string) {
 	cfg, err := config.InitConfig(configPath)
 	if err != nil {
@@ -62,7 +73,7 @@ func Run(configPath string) {
 	})
 
 	handlers := handler.NewHandler(services, tokenManager)
-	routes := handlers.InitRoutes()
+	routes := handlers.InitRoutes(cfg)
 	srv := server.NewServer(cfg, routes)
 
 	go func() {

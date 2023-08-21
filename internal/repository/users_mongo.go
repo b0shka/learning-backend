@@ -79,7 +79,7 @@ func (r *UsersRepo) Get(ctx context.Context, identifier interface{}) (domain.Use
 	return user, nil
 }
 
-func (r *UsersRepo) Update(ctx context.Context, user domain.UserUpdate) error {
-	_, err := r.db.UpdateOne(ctx, bson.M{"_id": user.ID}, bson.M{"$set": user})
+func (r *UsersRepo) Update(ctx context.Context, id primitive.ObjectID, user domain.UserUpdate) error {
+	_, err := r.db.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": user})
 	return err
 }

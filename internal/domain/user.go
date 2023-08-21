@@ -11,7 +11,6 @@ type User struct {
 }
 
 type UserUpdate struct {
-	ID    primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	Photo string             `json:"photo" bson:"photo"`
-	Name  string             `json:"name" bson:"name" binding:"required"`
+	Photo string `json:"photo" bson:"photo"`
+	Name  string `json:"name" bson:"name" binding:"required"`
 }

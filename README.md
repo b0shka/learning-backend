@@ -24,6 +24,8 @@ EMAIL_SERVICE_PASSWORD=<email password>
 
 SECRET_KEY=<random string>
 CODE_SALT=<random string>
+
+HTTP_HOST=localhost
 ```
 
 ---

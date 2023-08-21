@@ -40,6 +40,18 @@ type tokenResponse struct {
 	AccessToken string `json:"access_token"`
 }
 
+//	@Summary		User Send Code Email
+//	@Tags			auth
+//	@Description	send secret code to email user
+//	@ModuleID		sendCodeEmail
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		userEmailInput	true	"auth info"
+//	@Success		201		{string}	string			"ok"
+//	@Failure		400,404	{object}	response
+//	@Failure		500		{object}	response
+//	@Failure		default	{object}	response
+//	@Router			/user/auth/send-code [post]
 func (h *Handler) sendCodeEmail(c *gin.Context) {
 	var inp userEmailInput
 	if err := c.BindJSON(&inp); err != nil {
@@ -56,6 +68,18 @@ func (h *Handler) sendCodeEmail(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+//	@Summary		User SignIn
+//	@Tags			auth
+//	@Description	user sign in
+//	@ModuleID		userSignIn
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		userSignInInput	true	"sign in info"
+//	@Success		201		{object}	tokenResponse
+//	@Failure		400,404	{object}	response
+//	@Failure		500		{object}	response
+//	@Failure		default	{object}	response
+//	@Router			/user/auth/sign-in [post]
 func (h *Handler) userSignIn(c *gin.Context) {
 	var inp userSignInInput
 	if err := c.BindJSON(&inp); err != nil {
@@ -81,6 +105,18 @@ func (h *Handler) userSignIn(c *gin.Context) {
 	})
 }
 
+//	@Summary		Get User
+//  @Security		UsersAuth
+//	@Tags			account
+//	@Description	get information account
+//	@ModuleID		getUserById
+//	@Accept			json
+//	@Produce		json
+//	@Success		201		{object}	domain.User
+//	@Failure		400,404	{object}	response
+//	@Failure		500		{object}	response
+//	@Failure		default	{object}	response
+//	@Router			/user/ [get]
 func (h *Handler) getUserById(c *gin.Context) {
 	// id, err := parseIdFromPath(c, "id")
 	// if err != nil {
@@ -103,6 +139,19 @@ func (h *Handler) getUserById(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
+//	@Summary		Update User
+//  @Security		UsersAuth
+//	@Tags			account
+//	@Description	update user account
+//	@ModuleID		updateUser
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		domain.UserUpdate	true	"user info"
+//	@Success		201		{string}	string			"ok"
+//	@Failure		400,404	{object}	response
+//	@Failure		500		{object}	response
+//	@Failure		default	{object}	response
+//	@Router			/user/update [post]
 func (h *Handler) updateUser(c *gin.Context) {
 	id, err := getUserId(c)
 	if err != nil {
@@ -116,8 +165,7 @@ func (h *Handler) updateUser(c *gin.Context) {
 		return
 	}
 
-	inp.ID = id
-	if err = h.services.Users.Update(c, inp); err != nil {
+	if err = h.services.Users.Update(c, id, inp); err != nil {
 		newResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}

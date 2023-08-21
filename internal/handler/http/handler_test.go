@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/b0shka/backend/internal/config"
 	handler "github.com/b0shka/backend/internal/handler/http"
 	"github.com/b0shka/backend/internal/service"
 	"github.com/b0shka/backend/pkg/auth"
@@ -19,7 +20,7 @@ func TestNewHandler(t *testing.T) {
 
 func TestNewHandler_InitRoutes(t *testing.T) {
 	h := handler.NewHandler(&service.Services{}, &auth.Manager{})
-	router := h.InitRoutes()
+	router := h.InitRoutes(&config.Config{})
 
 	ts := httptest.NewServer(router)
 	defer ts.Close()
