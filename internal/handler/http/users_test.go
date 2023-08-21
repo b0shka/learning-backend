@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http/httptest"
@@ -13,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -23,15 +25,17 @@ func TestHandler_sendCodeEmail(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		body         string
+		body         gin.H
 		email        string
 		mockBehavior mockBehavior
 		statusCode   int
 		responseBody string
 	}{
 		{
-			name:  "ok",
-			body:  `{"email":"email@ya.ru"}`,
+			name: "ok",
+			body: gin.H{
+				"email": "email@ya.ru",
+			},
 			email: "email@ya.ru",
 			mockBehavior: func(s *mock_service.MockUsers, email string) {
 				s.EXPECT().SendCodeEmail(gomock.Any(), email).Return(nil)
@@ -41,7 +45,9 @@ func TestHandler_sendCodeEmail(t *testing.T) {
 		},
 		{
 			name: "error send code",
-			body: `{"email":"email@ya.ru"}`,
+			body: gin.H{
+				"email": "email@ya.ru",
+			},
 			mockBehavior: func(s *mock_service.MockUsers, email string) {
 				s.EXPECT().SendCodeEmail(gomock.Any(), gomock.Any()).
 					Return(errInternalServErr)
@@ -50,15 +56,19 @@ func TestHandler_sendCodeEmail(t *testing.T) {
 			responseBody: fmt.Sprintf(`{"message":"%s"}`, errInternalServErr),
 		},
 		{
-			name:         "empty fields",
-			body:         `{"email":""}`,
+			name: "empty fields",
+			body: gin.H{
+				"email": "",
+			},
 			mockBehavior: func(s *mock_service.MockUsers, email string) {},
 			statusCode:   400,
 			responseBody: `{"message":"invalid input body"}`,
 		},
 		{
-			name:         "invalid email",
-			body:         `{"email":"email"}`,
+			name: "invalid email",
+			body: gin.H{
+				"email": "email@",
+			},
 			mockBehavior: func(s *mock_service.MockUsers, email string) {},
 			statusCode:   400,
 			responseBody: `{"message":"invalid input body"}`,
@@ -80,10 +90,14 @@ func TestHandler_sendCodeEmail(t *testing.T) {
 			router.POST("/send-code", handler.sendCodeEmail)
 
 			recorder := httptest.NewRecorder()
+
+			data, err := json.Marshal(testCase.body)
+			require.NoError(t, err)
+
 			req := httptest.NewRequest(
 				"POST",
 				"/send-code",
-				bytes.NewBufferString(testCase.body),
+				bytes.NewReader(data),
 			)
 
 			router.ServeHTTP(recorder, req)
@@ -99,7 +113,7 @@ func TestHandler_userSignIn(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		body         string
+		body         gin.H
 		userInput    service.UserSignInInput
 		mockBehavior mockBehavior
 		statusCode   int
@@ -107,7 +121,10 @@ func TestHandler_userSignIn(t *testing.T) {
 	}{
 		{
 			name: "ok",
-			body: `{"email":"email@ya.ru","secret_code":123456}`,
+			body: gin.H{
+				"email":       "email@ya.ru",
+				"secret_code": 123456,
+			},
 			userInput: service.UserSignInInput{
 				Email:      "email@ya.ru",
 				SecretCode: 123456,
@@ -122,7 +139,10 @@ func TestHandler_userSignIn(t *testing.T) {
 		},
 		{
 			name: "error sign in",
-			body: `{"email":"email@ya.ru","secret_code":123456}`,
+			body: gin.H{
+				"email":       "email@ya.ru",
+				"secret_code": 123456,
+			},
 			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {
 				s.EXPECT().
 					SignIn(gomock.Any(), gomock.Any()).
@@ -133,7 +153,10 @@ func TestHandler_userSignIn(t *testing.T) {
 		},
 		{
 			name: "error invalid secret code",
-			body: `{"email":"email@ya.ru","secret_code":123456}`,
+			body: gin.H{
+				"email":       "email@ya.ru",
+				"secret_code": 123456,
+			},
 			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {
 				s.EXPECT().
 					SignIn(gomock.Any(), gomock.Any()).
@@ -144,7 +167,10 @@ func TestHandler_userSignIn(t *testing.T) {
 		},
 		{
 			name: "error expired secret code",
-			body: `{"email":"email@ya.ru","secret_code":123456}`,
+			body: gin.H{
+				"email":       "email@ya.ru",
+				"secret_code": 123456,
+			},
 			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {
 				s.EXPECT().
 					SignIn(gomock.Any(), gomock.Any()).
@@ -154,29 +180,41 @@ func TestHandler_userSignIn(t *testing.T) {
 			responseBody: fmt.Sprintf(`{"message":"%s"}`, domain.ErrSecretCodeExpired),
 		},
 		{
-			name:         "empty fields",
-			body:         `{"email":"","secret_code":}`,
+			name: "empty fields",
+			body: gin.H{
+				"email":       "",
+				"secret_code": nil,
+			},
 			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {},
 			statusCode:   400,
 			responseBody: `{"message":"invalid input body"}`,
 		},
 		{
-			name:         "empty fields",
-			body:         `{"email":"email@ya.ru","secret_code":}`,
+			name: "empty fields",
+			body: gin.H{
+				"email":       "email@ya.ru",
+				"secret_code": nil,
+			},
 			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {},
 			statusCode:   400,
 			responseBody: `{"message":"invalid input body"}`,
 		},
 		{
-			name:         "empty fields",
-			body:         `{"email":"","secret_code":123456}`,
+			name: "empty fields",
+			body: gin.H{
+				"email":       "",
+				"secret_code": 123456,
+			},
 			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {},
 			statusCode:   400,
 			responseBody: `{"message":"invalid input body"}`,
 		},
 		{
-			name:         "invalid input secret code",
-			body:         `{"email":"","secret_code":12345}`,
+			name: "invalid input secret code",
+			body: gin.H{
+				"email":       "email@ya.ru",
+				"secret_code": 12345,
+			},
 			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {},
 			statusCode:   400,
 			responseBody: `{"message":"invalid input body"}`,
@@ -197,11 +235,14 @@ func TestHandler_userSignIn(t *testing.T) {
 			router := gin.Default()
 			router.POST("/sign-in", handler.userSignIn)
 
+			data, err := json.Marshal(testCase.body)
+			require.NoError(t, err)
+
 			recorder := httptest.NewRecorder()
 			req := httptest.NewRequest(
 				"POST",
 				"/sign-in",
-				bytes.NewBufferString(testCase.body),
+				bytes.NewReader(data),
 			)
 
 			router.ServeHTTP(recorder, req)
@@ -219,7 +260,6 @@ func TestHandler_getUserById(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		body         string
 		userId       primitive.ObjectID
 		mockBehavior mockBehavior
 		statusCode   int
@@ -275,7 +315,7 @@ func TestHandler_getUserById(t *testing.T) {
 			req := httptest.NewRequest(
 				"GET",
 				"/",
-				bytes.NewBufferString(testCase.body),
+				nil,
 			)
 
 			router.ServeHTTP(recorder, req)
@@ -293,7 +333,7 @@ func TestHandler_updateUser(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		body         string
+		body         gin.H
 		user         domain.UserUpdate
 		mockBehavior mockBehavior
 		statusCode   int
@@ -301,7 +341,10 @@ func TestHandler_updateUser(t *testing.T) {
 	}{
 		{
 			name: "ok",
-			body: `{"photo":"","name":"Vanya"}`,
+			body: gin.H{
+				"photo": "",
+				"name":  "Vanya",
+			},
 			user: domain.UserUpdate{
 				ID:    userId,
 				Photo: "",
@@ -315,7 +358,10 @@ func TestHandler_updateUser(t *testing.T) {
 		},
 		{
 			name: "ok",
-			body: `{"photo":"https://photo.png","name":"Vanya"}`,
+			body: gin.H{
+				"photo": "https://photo.png",
+				"name":  "Vanya",
+			},
 			user: domain.UserUpdate{
 				ID:    userId,
 				Photo: "https://photo.png",
@@ -329,7 +375,10 @@ func TestHandler_updateUser(t *testing.T) {
 		},
 		{
 			name: "error update user",
-			body: `{"photo":"","name":"Vanya"}`,
+			body: gin.H{
+				"photo": "",
+				"name":  "Vanya",
+			},
 			user: domain.UserUpdate{
 				ID:    userId,
 				Photo: "",
@@ -342,8 +391,11 @@ func TestHandler_updateUser(t *testing.T) {
 			responseBody: fmt.Sprintf(`{"message":"%s"}`, errInternalServErr),
 		},
 		{
-			name:         "empty fields",
-			body:         `{"photo":"","name":""}`,
+			name: "empty fields",
+			body: gin.H{
+				"photo": "",
+				"name":  "",
+			},
 			mockBehavior: func(s *mock_service.MockUsers, user domain.UserUpdate) {},
 			statusCode:   400,
 			responseBody: `{"message":"invalid input body"}`,
@@ -366,11 +418,14 @@ func TestHandler_updateUser(t *testing.T) {
 				c.Set(userCtx, testCase.user.ID.Hex())
 			}, handler.updateUser)
 
+			data, err := json.Marshal(testCase.body)
+			require.NoError(t, err)
+
 			recorder := httptest.NewRecorder()
 			req := httptest.NewRequest(
 				"POST",
 				"/update",
-				bytes.NewBufferString(testCase.body),
+				bytes.NewReader(data),
 			)
 
 			router.ServeHTTP(recorder, req)

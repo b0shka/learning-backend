@@ -77,6 +77,12 @@ func TestAuth_NewJWTAndParse(t *testing.T) {
 			token:     "token",
 			shouldErr: true,
 		},
+		{
+			name:      "unexpected signing method",
+			userId:    userId,
+			token:     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ",
+			shouldErr: true,
+		},
 	}
 
 	for _, testCase := range tests {
