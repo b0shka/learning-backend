@@ -13,13 +13,13 @@ import (
 )
 
 func TestNewHandler(t *testing.T) {
-	h := handler.NewHandler(&service.Services{}, &auth.Manager{})
+	h := handler.NewHandler(&service.Services{}, &auth.PasetoManager{})
 
 	require.IsType(t, &handler.Handler{}, h)
 }
 
 func TestNewHandler_InitRoutes(t *testing.T) {
-	h := handler.NewHandler(&service.Services{}, &auth.Manager{})
+	h := handler.NewHandler(&service.Services{}, &auth.PasetoManager{})
 	router := h.InitRoutes(&config.Config{})
 
 	ts := httptest.NewServer(router)

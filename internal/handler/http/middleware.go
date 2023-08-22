@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/b0shka/backend/pkg/auth"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -28,31 +29,31 @@ func corsMiddleware(c *gin.Context) {
 }
 
 func (h *Handler) userIdentity(c *gin.Context) {
-	id, err := h.parseAuthHeader(c)
+	payload, err := h.parseAuthHeader(c)
 	if err != nil {
 		newResponse(c, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	c.Set(userCtx, id)
+	c.Set(userCtx, payload.UserID)
 }
 
-func (h *Handler) parseAuthHeader(c *gin.Context) (string, error) {
+func (h *Handler) parseAuthHeader(c *gin.Context) (*auth.Payload, error) {
 	header := c.GetHeader(authorizationHeader)
 	if header == "" {
-		return "", errors.New("empty Authorized header")
+		return nil, errors.New("empty Authorized header")
 	}
 
 	headerParts := strings.Split(header, " ")
 	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
-		return "", errors.New("invalid Authorized header")
+		return nil, errors.New("invalid Authorized header")
 	}
 
 	if len(headerParts[1]) == 0 {
-		return "", errors.New("token is empty")
+		return nil, errors.New("token is empty")
 	}
 
-	return h.tokenManager.Parse(headerParts[1])
+	return h.tokenManager.VerifyToken(headerParts[1])
 }
 
 func getUserId(c *gin.Context) (primitive.ObjectID, error) {

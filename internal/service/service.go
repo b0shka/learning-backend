@@ -34,8 +34,8 @@ type Services struct {
 
 type Deps struct {
 	Repos        *repository.Repositories
-	Hasher       hash.PasswordHasher
-	TokenManager auth.TokenManager
+	Hasher       hash.Hasher
+	TokenManager auth.Manager
 	EmailService email.EmailService
 	EmailConfig  config.EmailConfig
 	AuthConfig   config.AuthConfig

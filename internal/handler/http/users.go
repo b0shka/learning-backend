@@ -27,17 +27,8 @@ func (h *Handler) initUsersRoutes(api *gin.RouterGroup) {
 	}
 }
 
-type userEmailInput struct {
+type userSendCodeRequest struct {
 	Email string `json:"email" binding:"required,email"`
-}
-
-type userSignInInput struct {
-	Email      string `json:"email" binding:"required,email"`
-	SecretCode int32  `json:"secret_code" bson:"secret_code" binding:"required,min=100000"`
-}
-
-type tokenResponse struct {
-	AccessToken string `json:"access_token"`
 }
 
 //	@Summary		User Send Code Email
@@ -46,14 +37,14 @@ type tokenResponse struct {
 //	@ModuleID		sendCodeEmail
 //	@Accept			json
 //	@Produce		json
-//	@Param			input	body		userEmailInput	true	"auth info"
+//	@Param			input	body		userSendCodeRequest	true	"auth info"
 //	@Success		201		{string}	string			"ok"
 //	@Failure		400,404	{object}	response
 //	@Failure		500		{object}	response
 //	@Failure		default	{object}	response
 //	@Router			/user/auth/send-code [post]
 func (h *Handler) sendCodeEmail(c *gin.Context) {
-	var inp userEmailInput
+	var inp userSendCodeRequest
 	if err := c.BindJSON(&inp); err != nil {
 		newResponse(c, http.StatusBadRequest, domain.ErrInvalidInput.Error())
 		return
@@ -68,20 +59,29 @@ func (h *Handler) sendCodeEmail(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+type userSignInRequest struct {
+	Email      string `json:"email" binding:"required,email"`
+	SecretCode int32  `json:"secret_code" bson:"secret_code" binding:"required,min=100000"`
+}
+
+type tokenResponse struct {
+	AccessToken string `json:"access_token"`
+}
+
 //	@Summary		User SignIn
 //	@Tags			auth
 //	@Description	user sign in
 //	@ModuleID		userSignIn
 //	@Accept			json
 //	@Produce		json
-//	@Param			input	body		userSignInInput	true	"sign in info"
+//	@Param			input	body		userSignInRequest	true	"sign in info"
 //	@Success		201		{object}	tokenResponse
 //	@Failure		400,404	{object}	response
 //	@Failure		500		{object}	response
 //	@Failure		default	{object}	response
 //	@Router			/user/auth/sign-in [post]
 func (h *Handler) userSignIn(c *gin.Context) {
-	var inp userSignInInput
+	var inp userSignInRequest
 	if err := c.BindJSON(&inp); err != nil {
 		newResponse(c, http.StatusBadRequest, domain.ErrInvalidInput.Error())
 		return

@@ -56,7 +56,7 @@ func Run(configPath string) {
 		cfg.SMTP.Port,
 	)
 
-	tokenManager, err := auth.NewManager(cfg.Auth.SecretKey)
+	tokenManager, err := auth.NewPasetoManager(cfg.Auth.SecretKey)
 	if err != nil {
 		logger.Error(err)
 		return

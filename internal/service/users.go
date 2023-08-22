@@ -20,8 +20,8 @@ import (
 
 type UsersService struct {
 	repo         repository.Users
-	hasher       hash.PasswordHasher
-	tokenManager auth.TokenManager
+	hasher       hash.Hasher
+	tokenManager auth.Manager
 	emailService email.EmailService
 	emailConfig  config.EmailConfig
 	authConfig   config.AuthConfig
@@ -29,8 +29,8 @@ type UsersService struct {
 
 func NewUsersService(
 	repo repository.Users,
-	hasher hash.PasswordHasher,
-	tokenManager auth.TokenManager,
+	hasher hash.Hasher,
+	tokenManager auth.Manager,
 	emailService email.EmailService,
 	emailConfig config.EmailConfig,
 	authConfig config.AuthConfig,
@@ -131,7 +131,7 @@ func (s *UsersService) createSession(id primitive.ObjectID) (Tokens, error) {
 		err error
 	)
 
-	res.AccessToken, err = s.tokenManager.NewJWT(
+	res.AccessToken, err = s.tokenManager.CreateToken(
 		id.Hex(),
 		s.authConfig.JWT.AccessTokenTTL,
 	)

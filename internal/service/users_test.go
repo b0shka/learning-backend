@@ -29,7 +29,7 @@ func mockUserService(t *testing.T) (*service.UsersService, *mock_repository.Mock
 	userService := service.NewUsersService(
 		userRepo,
 		&hash.SHA256Hasher{},
-		&auth.Manager{},
+		&auth.JWTManager{},
 		email.EmailService{},
 		config.EmailConfig{},
 		config.AuthConfig{},

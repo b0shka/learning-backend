@@ -17,12 +17,12 @@ import (
 
 type Handler struct {
 	services     *service.Services
-	tokenManager auth.TokenManager
+	tokenManager auth.Manager
 }
 
 func NewHandler(
 	services *service.Services,
-	tokenManager auth.TokenManager,
+	tokenManager auth.Manager,
 ) *Handler {
 	return &Handler{
 		services:     services,

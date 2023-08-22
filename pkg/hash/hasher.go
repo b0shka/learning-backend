@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-type PasswordHasher interface {
+type Hasher interface {
 	HashCode(code string) (string, error)
 }
 
