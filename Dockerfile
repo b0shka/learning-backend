@@ -17,7 +17,7 @@ WORKDIR /root/
 COPY --from=builder /app/.bin/app .
 COPY --from=builder /app/templates/ ./templates/
 COPY --from=builder /app/configs/ ./configs/
-COPY --from=builder /app/.env .
+# COPY --from=builder /app/.env .
 
 EXPOSE 8080
 CMD ["./app"]
