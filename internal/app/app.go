@@ -46,7 +46,12 @@ func Run(configPath string) {
 	}
 
 	db := mongoClient.Database(cfg.Mongo.DBName)
-	hasher := hash.NewSHA256Hasher(cfg.Auth.CodeSalt)
+
+	hasher, err := hash.NewSHA256Hasher(cfg.Auth.CodeSalt)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
 
 	emailService := email.NewEmailService(
 		cfg.Email.ServiceName,

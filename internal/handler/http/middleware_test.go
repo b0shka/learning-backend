@@ -125,26 +125,26 @@ func TestGetUserPayload(t *testing.T) {
 	}
 
 	tests := []struct {
-		name       string
-		ctx        *gin.Context
-		payload    *auth.Payload
-		shouldFail bool
+		name      string
+		ctx       *gin.Context
+		payload   *auth.Payload
+		shouldErr bool
 	}{
 		{
-			name:       "ok",
-			ctx:        getContext(payload),
-			payload:    payload,
-			shouldFail: false,
+			name:      "ok",
+			ctx:       getContext(payload),
+			payload:   payload,
+			shouldErr: false,
 		},
 		{
-			name:       "empty user id",
-			ctx:        &gin.Context{},
-			shouldFail: true,
+			name:      "empty user id",
+			ctx:       &gin.Context{},
+			shouldErr: true,
 		},
 		{
-			name:       "invalid payload",
-			ctx:        getInvalidContext(),
-			shouldFail: true,
+			name:      "invalid payload",
+			ctx:       getInvalidContext(),
+			shouldErr: true,
 		},
 	}
 
@@ -152,7 +152,7 @@ func TestGetUserPayload(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			payload, err := getUserPaylaod(testCase.ctx)
 
-			if testCase.shouldFail {
+			if testCase.shouldErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)

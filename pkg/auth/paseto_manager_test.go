@@ -46,7 +46,6 @@ func TestAuthPaseto_NewPasetoManager(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestAuthPaseto_CreateTokenAndVerify(t *testing.T) {

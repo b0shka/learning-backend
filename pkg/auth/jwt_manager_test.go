@@ -46,7 +46,6 @@ func TestAuthJWT_NewJWTManager(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestAuthJWT_CreateTokenAndVerify(t *testing.T) {
