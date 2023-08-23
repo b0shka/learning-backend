@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"os"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -75,15 +76,16 @@ func InitConfig(configPath string) (*Config, error) {
 		return nil, err
 	}
 
-	// if os.Getenv("APP_ENV") == "local" {
-	// 	if err := godotenv.Load(); err != nil {
-	// 		return nil, err
-	// 	}
-	// }
-
-	if err := godotenv.Load(); err != nil {
-		return nil, err
+	env := os.Getenv("APP_ENV")
+	if env == "local" {
+		if err := godotenv.Load(); err != nil {
+			return nil, err
+		}
 	}
+
+	// if err := godotenv.Load(); err != nil {
+	// 	return nil, err
+	// }
 
 	if err := envconfig.Process("", &cfg); err != nil {
 		log.Fatal(err.Error())

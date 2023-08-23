@@ -40,18 +40,18 @@ jobs:
       #     username: ${{ secrets.DOCKER_USERNAME }}
       #     password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # - name: Build and push
+      # - name: Build and push API image
       #   uses: docker/build-push-action@v4
       #   with:
       #     context: .
       #     push: true
       #     tags: b0shka/backend:latest
 
-      - name: Log in to Docker Hub
-        run: echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-
       - name: Build API image
         run: docker build -f Dockerfile -t b0shka/backend:latest .
+
+      - name: Login to Docker Hub
+        run: echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
 
       - name: Push API image to Docker Hub
         run: docker push b0shka/backend:latest

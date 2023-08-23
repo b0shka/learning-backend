@@ -10,8 +10,8 @@ build:
 	go mod download && CGO_ENABLED=0 GOOS=linux go build -o ./.bin/${PROGRAM_NAME} ./cmd/app/main.go
 
 start: build
-	docker compose up
-# APP_ENV="local" .bin/app
+	APP_ENV="local" .bin/app
+# docker compose up
 
 test:
 	GIN_MODE=release go test --short -coverprofile=cover.out -v ./...

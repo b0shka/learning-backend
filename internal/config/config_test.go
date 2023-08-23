@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func _TestInitConfig(t *testing.T) {
+func TestInitConfig(t *testing.T) {
 	type env struct {
 		mongoURI             string
 		mongoDBName          string
