@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/b0shka/backend/internal/domain"
 	"github.com/b0shka/backend/internal/service"
 	mock_service "github.com/b0shka/backend/internal/service/mocks"
+	"github.com/b0shka/backend/pkg/auth"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -162,7 +164,7 @@ func TestHandler_userSignIn(t *testing.T) {
 					SignIn(gomock.Any(), gomock.Any()).
 					Return(service.Tokens{}, domain.ErrSecretCodeInvalid)
 			},
-			statusCode:   400,
+			statusCode:   401,
 			responseBody: fmt.Sprintf(`{"message":"%s"}`, domain.ErrSecretCodeInvalid),
 		},
 		{
@@ -176,7 +178,7 @@ func TestHandler_userSignIn(t *testing.T) {
 					SignIn(gomock.Any(), gomock.Any()).
 					Return(service.Tokens{}, domain.ErrSecretCodeExpired)
 			},
-			statusCode:   400,
+			statusCode:   401,
 			responseBody: fmt.Sprintf(`{"message":"%s"}`, domain.ErrSecretCodeExpired),
 		},
 		{
@@ -257,6 +259,8 @@ func TestHandler_getUserById(t *testing.T) {
 	type mockBehavior func(s *mock_service.MockUsers, userId primitive.ObjectID)
 
 	userId := primitive.NewObjectID()
+	payload, err := auth.NewPayload(userId, time.Minute)
+	require.NoError(t, err)
 
 	tests := []struct {
 		name         string
@@ -308,7 +312,7 @@ func TestHandler_getUserById(t *testing.T) {
 
 			router := gin.Default()
 			router.GET("/", func(c *gin.Context) {
-				c.Set(userCtx, testCase.userId.Hex())
+				c.Set(userCtx, payload)
 			}, handler.getUserById)
 
 			recorder := httptest.NewRecorder()
@@ -330,6 +334,8 @@ func TestHandler_updateUser(t *testing.T) {
 	type mockBehavior func(s *mock_service.MockUsers, userId primitive.ObjectID, user domain.UserUpdate)
 
 	userId := primitive.NewObjectID()
+	payload, err := auth.NewPayload(userId, time.Minute)
+	require.NoError(t, err)
 
 	tests := []struct {
 		name         string
@@ -416,7 +422,7 @@ func TestHandler_updateUser(t *testing.T) {
 
 			router := gin.Default()
 			router.POST("/update", func(c *gin.Context) {
-				c.Set(userCtx, userId.Hex())
+				c.Set(userCtx, payload)
 			}, handler.updateUser)
 
 			data, err := json.Marshal(testCase.body)

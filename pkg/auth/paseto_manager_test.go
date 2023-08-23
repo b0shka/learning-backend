@@ -53,7 +53,7 @@ func TestAuthPaseto_CreateTokenAndVerify(t *testing.T) {
 	manager, err := NewPasetoManager(utils.RandomString(chacha20poly1305.KeySize))
 	require.NoError(t, err)
 
-	userId := primitive.NewObjectID().Hex()
+	userId := primitive.NewObjectID()
 	duration := time.Minute
 	payload, err := NewPayload(userId, duration)
 	require.NoError(t, err)

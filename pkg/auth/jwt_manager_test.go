@@ -53,7 +53,7 @@ func TestAuthJWT_CreateTokenAndVerify(t *testing.T) {
 	manager, err := NewJWTManager(utils.RandomString(32))
 	require.NoError(t, err)
 
-	userId := primitive.NewObjectID().Hex()
+	userId := primitive.NewObjectID()
 	duration := time.Minute
 	payload, err := NewPayload(userId, duration)
 	require.NoError(t, err)

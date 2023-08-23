@@ -132,7 +132,7 @@ func (s *UsersService) createSession(id primitive.ObjectID) (Tokens, error) {
 	)
 
 	res.AccessToken, err = s.tokenManager.CreateToken(
-		id.Hex(),
+		id,
 		s.authConfig.JWT.AccessTokenTTL,
 	)
 	if err != nil {

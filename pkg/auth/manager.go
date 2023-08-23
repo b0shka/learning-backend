@@ -1,8 +1,12 @@
 package auth
 
-import "time"
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type Manager interface {
-	CreateToken(userId string, tokenTTL time.Duration) (string, error)
+	CreateToken(userId primitive.ObjectID, tokenTTL time.Duration) (string, error)
 	VerifyToken(accessToken string) (*Payload, error)
 }

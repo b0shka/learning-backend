@@ -2,17 +2,20 @@ package http
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/b0shka/backend/pkg/auth"
+	"github.com/b0shka/backend/pkg/logger"
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 const (
-	authorizationHeader = "Authorization"
-	userCtx             = "userId"
+	authorizationHeaderKey  = "Authorization"
+	authorizationTypeBearer = "Bearer"
+
+	userCtx = "userCtx"
 )
 
 func corsMiddleware(c *gin.Context) {
@@ -28,53 +31,53 @@ func corsMiddleware(c *gin.Context) {
 	}
 }
 
-func (h *Handler) userIdentity(c *gin.Context) {
-	payload, err := h.parseAuthHeader(c)
-	if err != nil {
-		newResponse(c, http.StatusUnauthorized, err.Error())
-		return
-	}
+func userIdentity(tokenManager auth.Manager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		payload, err := parseAuthHeader(c, tokenManager)
+		if err != nil {
+			newResponse(c, http.StatusUnauthorized, err.Error())
+			return
+		}
+		logger.Info(payload)
 
-	c.Set(userCtx, payload.UserID)
+		c.Set(userCtx, payload)
+	}
 }
 
-func (h *Handler) parseAuthHeader(c *gin.Context) (*auth.Payload, error) {
-	header := c.GetHeader(authorizationHeader)
-	if header == "" {
-		return nil, errors.New("empty Authorized header")
+func parseAuthHeader(c *gin.Context, tokenManager auth.Manager) (*auth.Payload, error) {
+	authorizationHeader := c.GetHeader(authorizationHeaderKey)
+	if len(authorizationHeader) == 0 {
+		return nil, errors.New("empty authorization header")
 	}
 
-	headerParts := strings.Split(header, " ")
-	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
-		return nil, errors.New("invalid Authorized header")
+	headerParts := strings.Fields(authorizationHeader)
+	if len(headerParts) < 2 {
+		return nil, errors.New("invalid authorization header format")
 	}
 
-	if len(headerParts[1]) == 0 {
-		return nil, errors.New("token is empty")
+	authorizationType := headerParts[0]
+	if authorizationType != authorizationTypeBearer {
+		return nil, fmt.Errorf("unsupported authorization type: %s", authorizationType)
 	}
 
-	return h.tokenManager.VerifyToken(headerParts[1])
+	accessToken := headerParts[1]
+	return tokenManager.VerifyToken(accessToken)
 }
 
-func getUserId(c *gin.Context) (primitive.ObjectID, error) {
-	return getIdByContext(c, userCtx)
+func getUserPaylaod(c *gin.Context) (*auth.Payload, error) {
+	return getPayloadByContext(c, userCtx)
 }
 
-func getIdByContext(c *gin.Context, context string) (primitive.ObjectID, error) {
-	idFromCtx, ok := c.Get(context)
+func getPayloadByContext(c *gin.Context, context string) (*auth.Payload, error) {
+	payloadFromCtx, ok := c.Get(context)
 	if !ok {
-		return primitive.ObjectID{}, errors.New("studentCtx not found")
+		return nil, fmt.Errorf("%s not found", context)
 	}
 
-	idStr, ok := idFromCtx.(string)
+	payload, ok := payloadFromCtx.(*auth.Payload)
 	if !ok {
-		return primitive.ObjectID{}, errors.New("studentCtx is of invalid type")
+		return nil, fmt.Errorf("%s is of invalid type", context)
 	}
 
-	id, err := primitive.ObjectIDFromHex(idStr)
-	if err != nil {
-		return primitive.ObjectID{}, err
-	}
-
-	return id, nil
+	return payload, nil
 }

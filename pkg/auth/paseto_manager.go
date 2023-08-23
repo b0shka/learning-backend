@@ -7,6 +7,7 @@ import (
 	"github.com/aead/chacha20poly1305"
 	"github.com/b0shka/backend/internal/domain"
 	"github.com/o1egl/paseto"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type PasetoManager struct {
@@ -25,7 +26,7 @@ func NewPasetoManager(symmetricKey string) (Manager, error) {
 	}, nil
 }
 
-func (m *PasetoManager) CreateToken(userId string, ducation time.Duration) (string, error) {
+func (m *PasetoManager) CreateToken(userId primitive.ObjectID, ducation time.Duration) (string, error) {
 	payload, err := NewPayload(userId, ducation)
 	if err != nil {
 		return "", err

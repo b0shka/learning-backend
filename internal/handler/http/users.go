@@ -11,7 +11,7 @@ import (
 )
 
 func (h *Handler) initUsersRoutes(api *gin.RouterGroup) {
-	users := api.Group("/user")
+	users := api.Group("/users")
 	{
 		authenticating := users.Group("/auth")
 		{
@@ -19,7 +19,7 @@ func (h *Handler) initUsersRoutes(api *gin.RouterGroup) {
 			authenticating.POST("/sign-in", h.userSignIn)
 		}
 
-		authenticated := users.Group("/", h.userIdentity)
+		authenticated := users.Group("/").Use(userIdentity(h.tokenManager))
 		{
 			authenticated.GET("/", h.getUserById)
 			authenticated.POST("/update", h.updateUser)
@@ -93,7 +93,7 @@ func (h *Handler) userSignIn(c *gin.Context) {
 	})
 	if err != nil {
 		if errors.Is(err, domain.ErrSecretCodeInvalid) || errors.Is(err, domain.ErrSecretCodeExpired) {
-			newResponse(c, http.StatusBadRequest, err.Error())
+			newResponse(c, http.StatusUnauthorized, err.Error())
 			return
 		}
 		newResponse(c, http.StatusInternalServerError, err.Error())
@@ -124,14 +124,18 @@ func (h *Handler) getUserById(c *gin.Context) {
 	// 	return
 	// }
 
-	id, err := getUserId(c)
+	userPayload, err := getUserPaylaod(c)
 	if err != nil {
 		newResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	user, err := h.services.Users.Get(c, id)
+	user, err := h.services.Users.Get(c, userPayload.UserID)
 	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			newResponse(c, http.StatusNotFound, err.Error())
+			return
+		}
 		newResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -153,7 +157,7 @@ func (h *Handler) getUserById(c *gin.Context) {
 //	@Failure		default	{object}	response
 //	@Router			/user/update [post]
 func (h *Handler) updateUser(c *gin.Context) {
-	id, err := getUserId(c)
+	userPayload, err := getUserPaylaod(c)
 	if err != nil {
 		newResponse(c, http.StatusInternalServerError, err.Error())
 		return
@@ -165,7 +169,7 @@ func (h *Handler) updateUser(c *gin.Context) {
 		return
 	}
 
-	if err = h.services.Users.Update(c, id, inp); err != nil {
+	if err = h.services.Users.Update(c, userPayload.UserID, inp); err != nil {
 		newResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
