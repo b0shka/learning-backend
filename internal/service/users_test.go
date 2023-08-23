@@ -74,6 +74,9 @@ func TestUsersService_SignInErrExpiredCode(t *testing.T) {
 
 	ctx := context.Background()
 	userRepo.EXPECT().GetVerifyEmail(ctx, gomock.Any(), gomock.Any())
+	userRepo.EXPECT().RemoveVerifyEmail(ctx, gomock.Any()).Times(0)
+	userRepo.EXPECT().Get(ctx, gomock.Any()).Times(0)
+	userRepo.EXPECT().Create(ctx, gomock.Any()).Times(0)
 
 	res, err := userService.SignIn(ctx, service.UserSignInInput{})
 	require.True(t, errors.Is(err, domain.ErrSecretCodeExpired))
@@ -87,6 +90,9 @@ func TestUsersService_SignInErrGetEmail(t *testing.T) {
 
 	userRepo.EXPECT().GetVerifyEmail(ctx, gomock.Any(), gomock.Any()).
 		Return(domain.VerifyEmail{}, errInternalServErr)
+	userRepo.EXPECT().RemoveVerifyEmail(ctx, gomock.Any()).Times(0)
+	userRepo.EXPECT().Get(ctx, gomock.Any()).Times(0)
+	userRepo.EXPECT().Create(ctx, gomock.Any()).Times(0)
 
 	res, err := userService.SignIn(ctx, service.UserSignInInput{})
 
@@ -106,6 +112,8 @@ func TestUsersService_SignInErrRemoveEmail(t *testing.T) {
 			nil,
 		)
 	userRepo.EXPECT().RemoveVerifyEmail(ctx, gomock.Any()).Return(errInternalServErr)
+	userRepo.EXPECT().Get(ctx, gomock.Any()).Times(0)
+	userRepo.EXPECT().Create(ctx, gomock.Any()).Times(0)
 
 	res, err := userService.SignIn(ctx, service.UserSignInInput{})
 	require.True(t, errors.Is(err, errInternalServErr))
@@ -125,6 +133,7 @@ func TestUsersService_SignInErrGetUser(t *testing.T) {
 		)
 	userRepo.EXPECT().RemoveVerifyEmail(ctx, gomock.Any())
 	userRepo.EXPECT().Get(ctx, gomock.Any()).Return(domain.User{}, errInternalServErr)
+	userRepo.EXPECT().Create(ctx, gomock.Any()).Times(0)
 
 	res, err := userService.SignIn(ctx, service.UserSignInInput{})
 	require.True(t, errors.Is(err, errInternalServErr))

@@ -88,7 +88,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/http.userEmailInput"
+                            "$ref": "#/definitions/http.userSendCodeRequest"
                         }
                     }
                 ],
@@ -146,7 +146,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/http.userSignInInput"
+                            "$ref": "#/definitions/http.userSignInRequest"
                         }
                     }
                 ],
@@ -304,7 +304,7 @@ const docTemplate = `{
                 }
             }
         },
-        "http.userEmailInput": {
+        "http.userSendCodeRequest": {
             "type": "object",
             "required": [
                 "email"
@@ -315,7 +315,7 @@ const docTemplate = `{
                 }
             }
         },
-        "http.userSignInInput": {
+        "http.userSignInRequest": {
             "type": "object",
             "required": [
                 "email",

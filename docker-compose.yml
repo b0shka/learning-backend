@@ -2,18 +2,20 @@ version: '3.9'
 
 services:
   api:
-    image: b0shka/learning-backend:stable
-    container_name: learning-backend
+    image: b0shka/backend:latest
+    container_name: backend
     restart: always
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - 8000:8000
+      - 8080:8080
     environment:
       - MONGO_URI
-      - MONGO_DATABASE
+      - MONGO_DB_NAME
       - EMAIL_SERVICE_NAME
       - EMAIL_SERVICE_ADDRESS
       - EMAIL_SERVICE_PASSWORD
       - SECRET_KEY
+      - CODE_SALT
+      - HTTP_HOST

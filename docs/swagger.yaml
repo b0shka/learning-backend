@@ -36,14 +36,14 @@ definitions:
       access_token:
         type: string
     type: object
-  http.userEmailInput:
+  http.userSendCodeRequest:
     properties:
       email:
         type: string
     required:
     - email
     type: object
-  http.userSignInInput:
+  http.userSignInRequest:
     properties:
       email:
         type: string
@@ -105,7 +105,7 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/http.userEmailInput'
+          $ref: '#/definitions/http.userSendCodeRequest'
       produces:
       - application/json
       responses:
@@ -143,7 +143,7 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/http.userSignInInput'
+          $ref: '#/definitions/http.userSignInRequest'
       produces:
       - application/json
       responses:

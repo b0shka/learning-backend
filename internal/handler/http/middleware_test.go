@@ -30,7 +30,7 @@ func addAuthorizationHeader(
 	request.Header.Set(authorizationHeaderKey, authorizationHeader)
 }
 
-func TestHandler_userIdentity_(t *testing.T) {
+func TestHandler_userIdentity(t *testing.T) {
 	userId := primitive.NewObjectID()
 
 	testTable := []struct {

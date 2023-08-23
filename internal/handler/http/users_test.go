@@ -284,11 +284,11 @@ func TestHandler_getUserById(t *testing.T) {
 						Email:     "email@ya.ru",
 						Photo:     "",
 						Name:      "Vanya",
-						CreatedAt: 1692272560,
+						CreatedAt: time.Now().Unix(),
 					}, nil)
 			},
 			statusCode:   200,
-			responseBody: fmt.Sprintf(`{"id":"%s","email":"email@ya.ru","photo":"","name":"Vanya","created_at":1692272560}`, userId.Hex()),
+			responseBody: fmt.Sprintf(`{"id":"%s","email":"email@ya.ru","photo":"","name":"Vanya","created_at":%d}`, userId.Hex(), time.Now().Unix()),
 		},
 		{
 			name:      "no authorization",

@@ -2,7 +2,6 @@ package config
 
 import (
 	"log"
-	"os"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -66,9 +65,7 @@ type (
 )
 
 func InitConfig(configPath string) (*Config, error) {
-	env := os.Getenv("APP_ENV")
-
-	if err := parseConfigFile(configPath, env); err != nil {
+	if err := parseConfigFile(configPath); err != nil {
 		return nil, err
 	}
 
@@ -78,10 +75,14 @@ func InitConfig(configPath string) (*Config, error) {
 		return nil, err
 	}
 
-	if env == "local" {
-		if err := godotenv.Load(); err != nil {
-			return nil, err
-		}
+	// if os.Getenv("APP_ENV") == "local" {
+	// 	if err := godotenv.Load(); err != nil {
+	// 		return nil, err
+	// 	}
+	// }
+
+	if err := godotenv.Load(); err != nil {
+		return nil, err
 	}
 
 	if err := envconfig.Process("", &cfg); err != nil {
@@ -91,7 +92,7 @@ func InitConfig(configPath string) (*Config, error) {
 	return &cfg, nil
 }
 
-func parseConfigFile(folder, env string) error {
+func parseConfigFile(folder string) error {
 	viper.AddConfigPath(folder)
 	viper.SetConfigName("main")
 

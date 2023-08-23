@@ -81,7 +81,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/http.userEmailInput"
+                            "$ref": "#/definitions/http.userSendCodeRequest"
                         }
                     }
                 ],
@@ -139,7 +139,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/http.userSignInInput"
+                            "$ref": "#/definitions/http.userSignInRequest"
                         }
                     }
                 ],
@@ -297,7 +297,7 @@
                 }
             }
         },
-        "http.userEmailInput": {
+        "http.userSendCodeRequest": {
             "type": "object",
             "required": [
                 "email"
@@ -308,7 +308,7 @@
                 }
             }
         },
-        "http.userSignInInput": {
+        "http.userSignInRequest": {
             "type": "object",
             "required": [
                 "email",
