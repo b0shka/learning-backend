@@ -43,13 +43,6 @@ jobs:
       - name: Log in to Docker Hub
         run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: true
-          tags: b0shka/backend:latest
-
       - name: Build API image
         run: docker build -f Dockerfile -t b0shka/backend:latest .
 
