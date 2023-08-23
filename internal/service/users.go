@@ -20,8 +20,8 @@ import (
 
 type UsersService struct {
 	repo         repository.Users
-	hasher       hash.PasswordHasher
-	tokenManager auth.TokenManager
+	hasher       hash.Hasher
+	tokenManager auth.Manager
 	emailService email.EmailService
 	emailConfig  config.EmailConfig
 	authConfig   config.AuthConfig
@@ -29,8 +29,8 @@ type UsersService struct {
 
 func NewUsersService(
 	repo repository.Users,
-	hasher hash.PasswordHasher,
-	tokenManager auth.TokenManager,
+	hasher hash.Hasher,
+	tokenManager auth.Manager,
 	emailService email.EmailService,
 	emailConfig config.EmailConfig,
 	authConfig config.AuthConfig,
@@ -79,9 +79,9 @@ func (s *UsersService) SendCodeEmail(ctx context.Context, email string) error {
 	}
 
 	verifyEmail := domain.VerifyEmail{
-		Email:      email,
-		SecretCode: secretCodeHash,
-		ExpiredAt:  time.Now().Unix() + int64(s.authConfig.SercetCodeLifetime),
+		Email:          email,
+		SecretCodeHash: secretCodeHash,
+		ExpiredAt:      time.Now().Unix() + int64(s.authConfig.SercetCodeLifetime),
 	}
 	return s.repo.AddVerifyEmail(ctx, verifyEmail)
 }
@@ -108,13 +108,17 @@ func (s *UsersService) SignIn(ctx context.Context, inp UserSignInInput) (Tokens,
 		return Tokens{}, err
 	}
 
-	err = s.createIfNotExist(ctx, inp.Email)
-	if err != nil {
-		return Tokens{}, err
-	}
-
 	user, err := s.repo.Get(ctx, inp.Email)
 	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			err := s.repo.Create(ctx, domain.User{
+				Email:     inp.Email,
+				CreatedAt: time.Now().Unix(),
+			})
+			if err != nil {
+				return Tokens{}, err
+			}
+		}
 		return Tokens{}, err
 	}
 
@@ -127,8 +131,8 @@ func (s *UsersService) createSession(id primitive.ObjectID) (Tokens, error) {
 		err error
 	)
 
-	res.AccessToken, err = s.tokenManager.NewJWT(
-		id.Hex(),
+	res.AccessToken, err = s.tokenManager.CreateToken(
+		id,
 		s.authConfig.JWT.AccessTokenTTL,
 	)
 	if err != nil {
@@ -138,25 +142,10 @@ func (s *UsersService) createSession(id primitive.ObjectID) (Tokens, error) {
 	return res, nil
 }
 
-func (s *UsersService) createIfNotExist(ctx context.Context, email string) error {
-	_, err := s.repo.Get(ctx, email)
-	if err != nil {
-		if errors.Is(err, domain.ErrUserNotFound) {
-			return s.repo.Create(ctx, domain.User{
-				Email:     email,
-				CreatedAt: time.Now().Unix(),
-			})
-		}
-		return err
-	}
-
-	return nil
-}
-
 func (s *UsersService) Get(ctx context.Context, identifier interface{}) (domain.User, error) {
 	return s.repo.Get(ctx, identifier)
 }
 
-func (s *UsersService) Update(ctx context.Context, user domain.UserUpdate) error {
-	return s.repo.Update(ctx, user)
+func (s *UsersService) Update(ctx context.Context, id primitive.ObjectID, user domain.UserUpdate) error {
+	return s.repo.Update(ctx, id, user)
 }

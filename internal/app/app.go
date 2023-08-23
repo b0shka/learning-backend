@@ -21,9 +21,18 @@ import (
 	"github.com/b0shka/backend/pkg/logger"
 )
 
-func Run(configPath string) {
-	logger := logger.GetLogger()
+//	@title			Service API
+//	@version		1.0
+//	@description	REST API for Service App
 
+//	@host		localhost:8080
+//	@BasePath	/api
+
+//	@securityDefinitions.apikey	UsersAuth
+//	@in							header
+//	@name						Authorization
+
+func Run(configPath string) {
 	cfg, err := config.InitConfig(configPath)
 	if err != nil {
 		logger.Error(err)
@@ -37,7 +46,12 @@ func Run(configPath string) {
 	}
 
 	db := mongoClient.Database(cfg.Mongo.DBName)
-	hasher := hash.NewSHA256Hasher(cfg.Auth.CodeSalt)
+
+	hasher, err := hash.NewSHA256Hasher(cfg.Auth.CodeSalt)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
 
 	emailService := email.NewEmailService(
 		cfg.Email.ServiceName,
@@ -47,7 +61,7 @@ func Run(configPath string) {
 		cfg.SMTP.Port,
 	)
 
-	tokenManager, err := auth.NewManager(cfg.Auth.SecretKey)
+	tokenManager, err := auth.NewPasetoManager(cfg.Auth.SecretKey)
 	if err != nil {
 		logger.Error(err)
 		return
@@ -63,8 +77,8 @@ func Run(configPath string) {
 		AuthConfig:   cfg.Auth,
 	})
 
-	handlers := handler.NewHandler(services, tokenManager, logger)
-	routes := handlers.InitRoutes()
+	handlers := handler.NewHandler(services, tokenManager)
+	routes := handlers.InitRoutes(cfg)
 	srv := server.NewServer(cfg, routes)
 
 	go func() {

@@ -54,16 +54,16 @@ func (r *UsersRepo) Create(ctx context.Context, user domain.User) error {
 
 func (r *UsersRepo) Get(ctx context.Context, identifier interface{}) (domain.User, error) {
 	var user domain.User
-	filter := bson.M{}
+	var filter bson.M
 
-	switch _identifier := identifier.(type) {
+	switch identifier.(type) {
 	case string:
 		filter = bson.M{
-			"email": _identifier,
+			"email": identifier,
 		}
 	case primitive.ObjectID:
 		filter = bson.M{
-			"_id": _identifier,
+			"_id": identifier,
 		}
 	default:
 		return domain.User{}, domain.ErrIdentifier
@@ -79,7 +79,7 @@ func (r *UsersRepo) Get(ctx context.Context, identifier interface{}) (domain.Use
 	return user, nil
 }
 
-func (r *UsersRepo) Update(ctx context.Context, user domain.UserUpdate) error {
-	_, err := r.db.UpdateOne(ctx, bson.M{"_id": user.ID}, bson.M{"$set": user})
+func (r *UsersRepo) Update(ctx context.Context, id primitive.ObjectID, user domain.UserUpdate) error {
+	_, err := r.db.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": user})
 	return err
 }

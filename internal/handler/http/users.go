@@ -1,4 +1,4 @@
-package handler
+package http
 
 import (
 	"errors"
@@ -11,7 +11,7 @@ import (
 )
 
 func (h *Handler) initUsersRoutes(api *gin.RouterGroup) {
-	users := api.Group("/user")
+	users := api.Group("/users")
 	{
 		authenticating := users.Group("/auth")
 		{
@@ -19,7 +19,7 @@ func (h *Handler) initUsersRoutes(api *gin.RouterGroup) {
 			authenticating.POST("/sign-in", h.userSignIn)
 		}
 
-		authenticated := users.Group("/", h.userIdentity)
+		authenticated := users.Group("/").Use(userIdentity(h.tokenManager))
 		{
 			authenticated.GET("/", h.getUserById)
 			authenticated.POST("/update", h.updateUser)
@@ -27,39 +27,63 @@ func (h *Handler) initUsersRoutes(api *gin.RouterGroup) {
 	}
 }
 
-type userEmailInput struct {
-	Email string `json:"email" binding:"required"`
+type userSendCodeRequest struct {
+	Email string `json:"email" binding:"required,email"`
 }
 
-type userSignInInput struct {
-	Email      string `json:"email" binding:"required"`
-	SecretCode int32  `json:"secret_code" bson:"secret_code" binding:"required"`
-}
-
-type tokenResponse struct {
-	AccessToken string `json:"access_token"`
-}
-
+//	@Summary		User Send Code Email
+//	@Tags			auth
+//	@Description	send secret code to email user
+//	@ModuleID		sendCodeEmail
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		userSendCodeRequest	true	"auth info"
+//	@Success		201		{string}	string			"ok"
+//	@Failure		400,404	{object}	response
+//	@Failure		500		{object}	response
+//	@Failure		default	{object}	response
+//	@Router			/user/auth/send-code [post]
 func (h *Handler) sendCodeEmail(c *gin.Context) {
-	var inp userEmailInput
+	var inp userSendCodeRequest
 	if err := c.BindJSON(&inp); err != nil {
-		h.newResponse(c, http.StatusBadRequest, err.Error())
+		newResponse(c, http.StatusBadRequest, domain.ErrInvalidInput.Error())
 		return
 	}
 
 	err := h.services.Users.SendCodeEmail(c, inp.Email)
 	if err != nil {
-		h.newResponse(c, http.StatusInternalServerError, err.Error())
+		newResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	c.Status(http.StatusOK)
 }
 
+type userSignInRequest struct {
+	Email      string `json:"email" binding:"required,email"`
+	SecretCode int32  `json:"secret_code" bson:"secret_code" binding:"required,min=100000"`
+}
+
+type tokenResponse struct {
+	AccessToken string `json:"access_token"`
+}
+
+//	@Summary		User SignIn
+//	@Tags			auth
+//	@Description	user sign in
+//	@ModuleID		userSignIn
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		userSignInRequest	true	"sign in info"
+//	@Success		201		{object}	tokenResponse
+//	@Failure		400,404	{object}	response
+//	@Failure		500		{object}	response
+//	@Failure		default	{object}	response
+//	@Router			/user/auth/sign-in [post]
 func (h *Handler) userSignIn(c *gin.Context) {
-	var inp userSignInInput
+	var inp userSignInRequest
 	if err := c.BindJSON(&inp); err != nil {
-		h.newResponse(c, http.StatusBadRequest, err.Error())
+		newResponse(c, http.StatusBadRequest, domain.ErrInvalidInput.Error())
 		return
 	}
 
@@ -69,10 +93,10 @@ func (h *Handler) userSignIn(c *gin.Context) {
 	})
 	if err != nil {
 		if errors.Is(err, domain.ErrSecretCodeInvalid) || errors.Is(err, domain.ErrSecretCodeExpired) {
-			h.newResponse(c, http.StatusBadRequest, err.Error())
+			newResponse(c, http.StatusUnauthorized, err.Error())
 			return
 		}
-		h.newResponse(c, http.StatusInternalServerError, err.Error())
+		newResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -81,44 +105,72 @@ func (h *Handler) userSignIn(c *gin.Context) {
 	})
 }
 
+//	@Summary		Get User
+//  @Security		UsersAuth
+//	@Tags			account
+//	@Description	get information account
+//	@ModuleID		getUserById
+//	@Accept			json
+//	@Produce		json
+//	@Success		201		{object}	domain.User
+//	@Failure		400,404	{object}	response
+//	@Failure		500		{object}	response
+//	@Failure		default	{object}	response
+//	@Router			/user/ [get]
 func (h *Handler) getUserById(c *gin.Context) {
 	// id, err := parseIdFromPath(c, "id")
 	// if err != nil {
-	// 	h.newResponse(c, http.StatusBadRequest, err.Error())
+	// 	h.newResponse(c, http.StatusBadRequest, domain.ErrInvalidInput.Error())
 	// 	return
 	// }
 
-	id, err := getUserId(c)
+	userPayload, err := getUserPaylaod(c)
 	if err != nil {
-		h.newResponse(c, http.StatusInternalServerError, err.Error())
+		newResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	user, err := h.services.Users.Get(c, id)
+	user, err := h.services.Users.Get(c, userPayload.UserID)
 	if err != nil {
-		h.newResponse(c, http.StatusInternalServerError, err.Error())
+		if errors.Is(err, domain.ErrUserNotFound) {
+			newResponse(c, http.StatusNotFound, err.Error())
+			return
+		}
+		newResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, user)
 }
 
+//	@Summary		Update User
+//  @Security		UsersAuth
+//	@Tags			account
+//	@Description	update user account
+//	@ModuleID		updateUser
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		domain.UserUpdate	true	"user info"
+//	@Success		201		{string}	string			"ok"
+//	@Failure		400,404	{object}	response
+//	@Failure		500		{object}	response
+//	@Failure		default	{object}	response
+//	@Router			/user/update [post]
 func (h *Handler) updateUser(c *gin.Context) {
-	id, err := getUserId(c)
+	userPayload, err := getUserPaylaod(c)
 	if err != nil {
-		h.newResponse(c, http.StatusInternalServerError, err.Error())
+		newResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	var inp domain.UserUpdate
 	if err := c.BindJSON(&inp); err != nil {
-		h.newResponse(c, http.StatusBadRequest, err.Error())
+		newResponse(c, http.StatusBadRequest, domain.ErrInvalidInput.Error())
 		return
 	}
-	inp.ID = id
 
-	if err = h.services.Users.Update(c, inp); err != nil {
-		h.newResponse(c, http.StatusInternalServerError, err.Error())
+	if err = h.services.Users.Update(c, userPayload.UserID, inp); err != nil {
+		newResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 

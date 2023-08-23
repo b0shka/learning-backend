@@ -109,15 +109,15 @@ func (mr *MockUsersMockRecorder) RemoveVerifyEmail(ctx, id interface{}) *gomock.
 }
 
 // Update mocks base method.
-func (m *MockUsers) Update(ctx context.Context, user domain.UserUpdate) error {
+func (m *MockUsers) Update(ctx context.Context, id primitive.ObjectID, user domain.UserUpdate) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update", ctx, user)
+	ret := m.ctrl.Call(m, "Update", ctx, id, user)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Update indicates an expected call of Update.
-func (mr *MockUsersMockRecorder) Update(ctx, user interface{}) *gomock.Call {
+func (mr *MockUsersMockRecorder) Update(ctx, id, user interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockUsers)(nil).Update), ctx, user)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockUsers)(nil).Update), ctx, id, user)
 }

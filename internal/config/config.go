@@ -1,33 +1,34 @@
 package config
 
 import (
-	"os"
+	"log"
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/kelseyhightower/envconfig"
 	"github.com/spf13/viper"
 )
 
 type (
 	Config struct {
-		Mongo MongoConfig
-		Email EmailConfig
-		Auth  AuthConfig
-		HTTP  HTTPConfig
-		SMTP  SMPTConfig
+		Mongo MongoConfig `mapstructure:"port"`
+		HTTP  HTTPConfig  `mapstructure:"http"`
+		Auth  AuthConfig  `mapstructure:"auth"`
+		SMTP  SMTPConfig  `mapstructure:"smtp"`
+		Email EmailConfig `mapstructure:"email"`
 	}
 
 	MongoConfig struct {
-		URI    string
-		DBName string
+		URI    string `envconfig:"MONGO_URI"`
+		DBName string `envconfig:"MONGO_DB_NAME"`
 	}
 
 	EmailConfig struct {
-		ServiceName     string
-		ServiceAddress  string
-		ServicePassword string
-		Templates       EmailTemplates
-		Subjects        EmailSubjects
+		ServiceName     string         `envconfig:"EMAIL_SERVICE_NAME"`
+		ServiceAddress  string         `envconfig:"EMAIL_SERVICE_ADDRESS"`
+		ServicePassword string         `envconfig:"EMAIL_SERVICE_PASSWORD"`
+		Templates       EmailTemplates `mapstructure:"templates"`
+		Subjects        EmailSubjects  `mapstructure:"subjects"`
 	}
 
 	EmailTemplates struct {
@@ -39,10 +40,10 @@ type (
 	}
 
 	AuthConfig struct {
-		JWT                JWTConfig
-		SercetCodeLifetime int
-		SecretKey          string
-		CodeSalt           string
+		JWT                JWTConfig `mapstructure:"jwt"`
+		SercetCodeLifetime int       `mapstructure:"sercetCodeLifetime"`
+		SecretKey          string    `envconfig:"SECRET_KEY"`
+		CodeSalt           string    `envconfig:"CODE_SALT"`
 	}
 
 	JWTConfig struct {
@@ -50,83 +51,54 @@ type (
 	}
 
 	HTTPConfig struct {
+		Host               string        `mapstructure:"HTTP_HOST"`
 		Port               string        `mapstructure:"port"`
 		MaxHeaderMegabytes int           `mapstructure:"maxHeaderBytes"`
 		ReadTimeout        time.Duration `mapstructure:"readTimeout"`
 		WriteTimeout       time.Duration `mapstructure:"writeTimeout"`
 	}
 
-	SMPTConfig struct {
+	SMTPConfig struct {
 		Host string `mapstructure:"host"`
 		Port int    `mapstructure:"port"`
 	}
 )
 
-func InitConfig(path string) (*Config, error) {
-	viper.AddConfigPath(path)
-	viper.SetConfigName("main")
-	viper.SetConfigType("yaml")
-
-	if err := viper.ReadInConfig(); err != nil {
-		return nil, err
-	}
-
-	viper.SetConfigName("../.env")
-	viper.SetConfigType("env")
-
-	if err := viper.MergeInConfig(); err != nil {
+func InitConfig(configPath string) (*Config, error) {
+	if err := parseConfigFile(configPath); err != nil {
 		return nil, err
 	}
 
 	var cfg Config
-	if err := unmarshal(&cfg); err != nil {
+
+	if err := viper.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
+
+	// if os.Getenv("APP_ENV") == "local" {
+	// 	if err := godotenv.Load(); err != nil {
+	// 		return nil, err
+	// 	}
+	// }
 
 	if err := godotenv.Load(); err != nil {
 		return nil, err
 	}
 
-	setFromEnv(&cfg)
+	if err := envconfig.Process("", &cfg); err != nil {
+		log.Fatal(err.Error())
+	}
+
 	return &cfg, nil
 }
 
-func unmarshal(cfg *Config) error {
-	if err := viper.UnmarshalKey("http", &cfg.HTTP); err != nil {
-		return err
-	}
+func parseConfigFile(folder string) error {
+	viper.AddConfigPath(folder)
+	viper.SetConfigName("main")
 
-	if err := viper.UnmarshalKey("auth.jwt", &cfg.Auth.JWT); err != nil {
-		return err
-	}
-
-	if err := viper.UnmarshalKey("auth.sercetCodeLifetime", &cfg.Auth.SercetCodeLifetime); err != nil {
-		return err
-	}
-
-	if err := viper.UnmarshalKey("smtp", &cfg.SMTP); err != nil {
-		return err
-	}
-
-	if err := viper.UnmarshalKey("email.templates", &cfg.Email.Templates); err != nil {
-		return err
-	}
-
-	if err := viper.UnmarshalKey("email.subjects", &cfg.Email.Subjects); err != nil {
+	if err := viper.ReadInConfig(); err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func setFromEnv(cfg *Config) {
-	cfg.Mongo.URI = os.Getenv("MONGO_URI")
-	cfg.Mongo.DBName = os.Getenv("MONGO_DB_NAME")
-
-	cfg.Email.ServiceName = os.Getenv("EMAIL_SERVICE_NAME")
-	cfg.Email.ServiceAddress = os.Getenv("EMAIL_SERVICE_ADDRESS")
-	cfg.Email.ServicePassword = os.Getenv("EMAIL_SERVICE_PASSWORD")
-
-	cfg.Auth.SecretKey = os.Getenv("SECRET_KEY")
-	cfg.Auth.CodeSalt = os.Getenv("CODE_SALT")
 }

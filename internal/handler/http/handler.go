@@ -1,35 +1,36 @@
-package handler
+package http
 
 import (
-	"errors"
+	"fmt"
+	"net/http"
 
+	"github.com/b0shka/backend/docs"
+	"github.com/b0shka/backend/internal/config"
 	"github.com/b0shka/backend/internal/service"
 	"github.com/b0shka/backend/pkg/auth"
-	"github.com/b0shka/backend/pkg/logger"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 
+	_ "github.com/b0shka/backend/docs"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 type Handler struct {
 	services     *service.Services
-	tokenManager auth.TokenManager
-	logger       logger.Logger
+	tokenManager auth.Manager
 }
 
 func NewHandler(
 	services *service.Services,
-	tokenManager auth.TokenManager,
-	logger logger.Logger,
+	tokenManager auth.Manager,
 ) *Handler {
 	return &Handler{
 		services:     services,
 		tokenManager: tokenManager,
-		logger:       logger,
 	}
 }
 
-func (h *Handler) InitRoutes() *gin.Engine {
+func (h *Handler) InitRoutes(cfg *config.Config) *gin.Engine {
 	router := gin.Default()
 
 	router.Use(
@@ -37,6 +38,13 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		gin.Logger(),
 		corsMiddleware,
 	)
+
+	docs.SwaggerInfo.Host = fmt.Sprintf("%s:%s", cfg.HTTP.Host, cfg.HTTP.Port)
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	router.GET("/ping", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
 
 	api := router.Group("/api")
 	{
@@ -46,16 +54,16 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	return router
 }
 
-func parseIdFromPath(c *gin.Context, param string) (primitive.ObjectID, error) {
-	idParam := c.Param(param)
-	if idParam == "" {
-		return primitive.ObjectID{}, errors.New("empty id param")
-	}
+// func parseIdFromPath(c *gin.Context, param string) (primitive.ObjectID, error) {
+// 	idParam := c.Param(param)
+// 	if idParam == "" {
+// 		return primitive.ObjectID{}, errors.New("empty id param")
+// 	}
 
-	id, err := primitive.ObjectIDFromHex(idParam)
-	if err != nil {
-		return primitive.ObjectID{}, errors.New("invalid id param")
-	}
+// 	id, err := primitive.ObjectIDFromHex(idParam)
+// 	if err != nil {
+// 		return primitive.ObjectID{}, errors.New("invalid id param")
+// 	}
 
-	return id, nil
-}
+// 	return id, nil
+// }

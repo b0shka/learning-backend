@@ -8,8 +8,8 @@ type VerifyEmailConfig struct {
 }
 
 type VerifyEmail struct {
-	ID         primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	Email      string             `json:"email" binding:"required"`
-	SecretCode string             `json:"secret_code" bson:"secret_code" binding:"required"`
-	ExpiredAt  int64              `json:"expired_at" bson:"expired_at" binding:"required"`
+	ID             primitive.ObjectID `bson:"_id,omitempty"`
+	Email          string             `binding:"required"`
+	SecretCodeHash string             `bson:"secret_code" binding:"required"`
+	ExpiredAt      int64              `bson:"expired_at" binding:"required"`
 }

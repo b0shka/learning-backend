@@ -10,7 +10,8 @@
 
 - Go 1.18
 - Docker
-- Linux, Windows or macOS
+- golangci-lint (optional, used to run code checks)
+- swag (optional, used to re-generate swagger documentation)
 
 Create `.env` file in root directory and add following values:
 
@@ -24,6 +25,8 @@ EMAIL_SERVICE_PASSWORD=<email password>
 
 SECRET_KEY=<random string>
 CODE_SALT=<random string>
+
+HTTP_HOST=localhost
 ```
 
 ---

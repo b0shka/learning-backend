@@ -9,6 +9,7 @@ import (
 	"github.com/b0shka/backend/pkg/auth"
 	"github.com/b0shka/backend/pkg/email"
 	"github.com/b0shka/backend/pkg/hash"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type UserSignInInput struct {
@@ -24,7 +25,7 @@ type Users interface {
 	SendCodeEmail(ctx context.Context, email string) error
 	SignIn(ctx context.Context, inp UserSignInInput) (Tokens, error)
 	Get(ctx context.Context, identifier interface{}) (domain.User, error)
-	Update(ctx context.Context, user domain.UserUpdate) error
+	Update(ctx context.Context, id primitive.ObjectID, user domain.UserUpdate) error
 }
 
 type Services struct {
@@ -33,8 +34,8 @@ type Services struct {
 
 type Deps struct {
 	Repos        *repository.Repositories
-	Hasher       hash.PasswordHasher
-	TokenManager auth.TokenManager
+	Hasher       hash.Hasher
+	TokenManager auth.Manager
 	EmailService email.EmailService
 	EmailConfig  config.EmailConfig
 	AuthConfig   config.AuthConfig

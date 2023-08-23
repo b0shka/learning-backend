@@ -1,0 +1,218 @@
+basePath: /api
+definitions:
+  domain.User:
+    properties:
+      created_at:
+        type: integer
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      photo:
+        type: string
+    required:
+    - created_at
+    - email
+    - name
+    type: object
+  domain.UserUpdate:
+    properties:
+      name:
+        type: string
+      photo:
+        type: string
+    required:
+    - name
+    type: object
+  http.response:
+    properties:
+      message:
+        type: string
+    type: object
+  http.tokenResponse:
+    properties:
+      access_token:
+        type: string
+    type: object
+  http.userSendCodeRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  http.userSignInRequest:
+    properties:
+      email:
+        type: string
+      secret_code:
+        minimum: 100000
+        type: integer
+    required:
+    - email
+    - secret_code
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: REST API for Service App
+  title: Service API
+  version: "1.0"
+paths:
+  /user/:
+    get:
+      consumes:
+      - application/json
+      description: get information account
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.response'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/http.response'
+      security:
+      - UsersAuth: []
+      summary: Get User
+      tags:
+      - account
+  /user/auth/send-code:
+    post:
+      consumes:
+      - application/json
+      description: send secret code to email user
+      parameters:
+      - description: auth info
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/http.userSendCodeRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.response'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/http.response'
+      summary: User Send Code Email
+      tags:
+      - auth
+  /user/auth/sign-in:
+    post:
+      consumes:
+      - application/json
+      description: user sign in
+      parameters:
+      - description: sign in info
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/http.userSignInRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/http.tokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.response'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/http.response'
+      summary: User SignIn
+      tags:
+      - auth
+  /user/update:
+    post:
+      consumes:
+      - application/json
+      description: update user account
+      parameters:
+      - description: user info
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UserUpdate'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.response'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/http.response'
+      security:
+      - UsersAuth: []
+      summary: Update User
+      tags:
+      - account
+securityDefinitions:
+  UsersAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

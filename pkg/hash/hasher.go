@@ -5,7 +5,9 @@ import (
 	"fmt"
 )
 
-type PasswordHasher interface {
+var minSaltLength = 32
+
+type Hasher interface {
 	HashCode(code string) (string, error)
 }
 
@@ -13,8 +15,11 @@ type SHA256Hasher struct {
 	salt string
 }
 
-func NewSHA256Hasher(salt string) *SHA256Hasher {
-	return &SHA256Hasher{salt: salt}
+func NewSHA256Hasher(salt string) (*SHA256Hasher, error) {
+	if len(salt) < minSaltLength {
+		return nil, fmt.Errorf("invalid salt length: must be at least %d characters", minSaltLength)
+	}
+	return &SHA256Hasher{salt: salt}, nil
 }
 
 func (h *SHA256Hasher) HashCode(code string) (string, error) {

@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: "b0shka"
-  API_IMAGE: "learning-backend"
+  API_IMAGE: "backend"
   TAG: "stable"
 
 jobs:
@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Test project
-        run: echo Testing...
+        run: make test
 
   build_and_push:
     runs-on: ubuntu-latest
@@ -40,21 +40,21 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # - name: Log in to Docker Hub
-      #   run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+      - name: Log in to Docker Hub
+        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
 
-      # - name: Build and push
-      #   uses: docker/build-push-action@v4
-      #   with:
-      #     context: .
-      #     push: true
-      #     tags: b0shka/walkom-backend:stable
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: b0shka/backend:latest
 
       - name: Build API image
-        run: docker build -f deploy/Dockerfile -t b0shka/walkom-backend:stable .
+        run: docker build -f Dockerfile -t b0shka/backend:latest .
 
       - name: Push API image to Docker Hub
-        run: docker push b0shka/walkom-backend:stable
+        run: docker push b0shka/backend:latest
       
   # deploy:
   #   runs-on: ubuntu-latest
