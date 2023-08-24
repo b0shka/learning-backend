@@ -170,6 +170,27 @@ func TestUsersService_SignInErrCreateUser(t *testing.T) {
 	require.IsType(t, service.Tokens{}, res)
 }
 
+// func TestUsersService_RefreshToken(t *testing.T) {
+// 	userService, userRepo := mockUserService(t)
+
+// 	userId := primitive.NewObjectID()
+// 	duration := time.Minute
+
+// 	tokenManager, err := auth.NewPasetoManager(utils.RandomString(32))
+// 	require.NoError(t, err)
+
+// 	token, payload, err := tokenManager.CreateToken(userId, duration)
+// 	require.NoError(t, err)
+// 	require.NotEmpty(t, payload)
+
+// 	ctx := context.Background()
+// 	userRepo.EXPECT().GetSession(ctx, gomock.Any())
+
+// 	res, err := userService.RefreshToken(ctx, token)
+// 	require.NoError(t, err)
+// 	require.IsType(t, service.RefreshToken{}, res)
+// }
+
 func TestUsersService_Get(t *testing.T) {
 	userService, userRepo := mockUserService(t)
 

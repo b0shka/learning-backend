@@ -261,6 +261,175 @@ func TestHandler_userSignIn(t *testing.T) {
 	}
 }
 
+func TestHandler_refreshToken(t *testing.T) {
+	type mockBehavior func(s *mock_service.MockUsers, refreshToken string)
+
+	tests := []struct {
+		name         string
+		body         gin.H
+		refreshToken string
+		mockBehavior mockBehavior
+		statusCode   int
+		responseBody string
+	}{
+		{
+			name: "ok",
+			body: gin.H{
+				"refresh_token": "refresh_token",
+			},
+			refreshToken: "refresh_token",
+			mockBehavior: func(s *mock_service.MockUsers, refreshToken string) {
+				s.EXPECT().
+					RefreshToken(gomock.Any(), refreshToken).
+					Return(service.RefreshToken{
+						AccessToken:          "access_token",
+						AccessTokenExpiresAt: time.Now().Add(time.Minute * 15).Unix(),
+					}, nil)
+			},
+			statusCode:   200,
+			responseBody: fmt.Sprintf(`{"access_token":"access_token","access_token_expires_at":%d}`, time.Now().Add(time.Minute*15).Unix()),
+		},
+		{
+			name: "error refresh token",
+			body: gin.H{
+				"refresh_token": "refresh_token",
+			},
+			refreshToken: "refresh_token",
+			mockBehavior: func(s *mock_service.MockUsers, refreshToken string) {
+				s.EXPECT().
+					RefreshToken(gomock.Any(), gomock.Any()).
+					Return(service.RefreshToken{}, errInternalServErr)
+			},
+			statusCode:   500,
+			responseBody: fmt.Sprintf(`{"message":"%s"}`, errInternalServErr),
+		},
+		{
+			name: "error session not found",
+			body: gin.H{
+				"refresh_token": "refresh_token",
+			},
+			refreshToken: "refresh_token",
+			mockBehavior: func(s *mock_service.MockUsers, refreshToken string) {
+				s.EXPECT().
+					RefreshToken(gomock.Any(), gomock.Any()).
+					Return(service.RefreshToken{}, domain.ErrSessionNotFound)
+			},
+			statusCode:   404,
+			responseBody: fmt.Sprintf(`{"message":"%s"}`, domain.ErrSessionNotFound),
+		},
+		{
+			name: "error session blocked",
+			body: gin.H{
+				"refresh_token": "refresh_token",
+			},
+			refreshToken: "refresh_token",
+			mockBehavior: func(s *mock_service.MockUsers, refreshToken string) {
+				s.EXPECT().
+					RefreshToken(gomock.Any(), gomock.Any()).
+					Return(service.RefreshToken{}, domain.ErrSessionBlocked)
+			},
+			statusCode:   401,
+			responseBody: fmt.Sprintf(`{"message":"%s"}`, domain.ErrSessionBlocked),
+		},
+		{
+			name: "error incorrect session user",
+			body: gin.H{
+				"refresh_token": "refresh_token",
+			},
+			refreshToken: "refresh_token",
+			mockBehavior: func(s *mock_service.MockUsers, refreshToken string) {
+				s.EXPECT().
+					RefreshToken(gomock.Any(), gomock.Any()).
+					Return(service.RefreshToken{}, domain.ErrIncorrectSessionUser)
+			},
+			statusCode:   401,
+			responseBody: fmt.Sprintf(`{"message":"%s"}`, domain.ErrIncorrectSessionUser),
+		},
+		{
+			name: "error mismatched session",
+			body: gin.H{
+				"refresh_token": "refresh_token",
+			},
+			refreshToken: "refresh_token",
+			mockBehavior: func(s *mock_service.MockUsers, refreshToken string) {
+				s.EXPECT().
+					RefreshToken(gomock.Any(), gomock.Any()).
+					Return(service.RefreshToken{}, domain.ErrMismatchedSession)
+			},
+			statusCode:   401,
+			responseBody: fmt.Sprintf(`{"message":"%s"}`, domain.ErrMismatchedSession),
+		},
+		{
+			name: "error expires token",
+			body: gin.H{
+				"refresh_token": "refresh_token",
+			},
+			refreshToken: "refresh_token",
+			mockBehavior: func(s *mock_service.MockUsers, refreshToken string) {
+				s.EXPECT().
+					RefreshToken(gomock.Any(), gomock.Any()).
+					Return(service.RefreshToken{}, domain.ErrExpiredToken)
+			},
+			statusCode:   401,
+			responseBody: fmt.Sprintf(`{"message":"%s"}`, domain.ErrExpiredToken),
+		},
+		{
+			name: "error invalid token",
+			body: gin.H{
+				"refresh_token": "refresh_token",
+			},
+			refreshToken: "refresh_token",
+			mockBehavior: func(s *mock_service.MockUsers, refreshToken string) {
+				s.EXPECT().
+					RefreshToken(gomock.Any(), gomock.Any()).
+					Return(service.RefreshToken{}, domain.ErrInvalidToken)
+			},
+			statusCode:   401,
+			responseBody: fmt.Sprintf(`{"message":"%s"}`, domain.ErrInvalidToken),
+		},
+		{
+			name: "empty fields",
+			body: gin.H{
+				"refresh_token": "",
+			},
+			mockBehavior: func(s *mock_service.MockUsers, refreshToken string) {},
+			statusCode:   400,
+			responseBody: `{"message":"invalid input body"}`,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			mockCtl := gomock.NewController(t)
+			defer mockCtl.Finish()
+
+			usersService := mock_service.NewMockUsers(mockCtl)
+			testCase.mockBehavior(usersService, testCase.refreshToken)
+
+			services := &service.Services{Users: usersService}
+			handler := Handler{services: services}
+
+			router := gin.Default()
+			router.POST("/refresh", handler.refreshToken)
+
+			data, err := json.Marshal(testCase.body)
+			require.NoError(t, err)
+
+			recorder := httptest.NewRecorder()
+			req := httptest.NewRequest(
+				"POST",
+				"/refresh",
+				bytes.NewReader(data),
+			)
+
+			router.ServeHTTP(recorder, req)
+
+			require.Equal(t, testCase.statusCode, recorder.Code)
+			require.Equal(t, testCase.responseBody, recorder.Body.String())
+		})
+	}
+}
+
 func TestHandler_getUserById(t *testing.T) {
 	type mockBehavior func(s *mock_service.MockUsers, userId primitive.ObjectID)
 

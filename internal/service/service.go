@@ -33,7 +33,7 @@ type RefreshToken struct {
 type Users interface {
 	SendCodeEmail(ctx context.Context, email string) error
 	SignIn(ctx *gin.Context, inp UserSignInInput) (Tokens, error)
-	RefreshToken(ctx *gin.Context, refreshToken string) (RefreshToken, error)
+	RefreshToken(ctx context.Context, refreshToken string) (RefreshToken, error)
 	Get(ctx context.Context, identifier interface{}) (domain.User, error)
 	Update(ctx context.Context, id primitive.ObjectID, user domain.UserUpdate) error
 }

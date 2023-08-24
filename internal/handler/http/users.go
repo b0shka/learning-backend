@@ -113,7 +113,7 @@ func (h *Handler) userSignIn(c *gin.Context) {
 }
 
 type refreshTokenRequest struct {
-	RefreshToken string `json:"refresh_token"`
+	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
 type refreshTokenResponse struct {

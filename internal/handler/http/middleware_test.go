@@ -83,7 +83,7 @@ func TestHandler_userIdentity(t *testing.T) {
 
 	for _, testCase := range testTable {
 		t.Run(testCase.name, func(t *testing.T) {
-			tokenManager, err := auth.NewJWTManager(utils.RandomString(32))
+			tokenManager, err := auth.NewPasetoManager(utils.RandomString(32))
 			require.NoError(t, err)
 
 			router := gin.Default()

@@ -174,7 +174,7 @@ func (s *UsersService) createSession(ctx *gin.Context, id primitive.ObjectID) (T
 	return res, nil
 }
 
-func (s *UsersService) RefreshToken(ctx *gin.Context, refreshToken string) (RefreshToken, error) {
+func (s *UsersService) RefreshToken(ctx context.Context, refreshToken string) (RefreshToken, error) {
 	var res RefreshToken
 
 	refreshPayload, err := s.tokenManager.VerifyToken(refreshToken)

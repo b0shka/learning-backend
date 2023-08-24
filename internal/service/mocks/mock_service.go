@@ -54,7 +54,7 @@ func (mr *MockUsersMockRecorder) Get(ctx, identifier interface{}) *gomock.Call {
 }
 
 // RefreshToken mocks base method.
-func (m *MockUsers) RefreshToken(ctx *gin.Context, refreshToken string) (service.RefreshToken, error) {
+func (m *MockUsers) RefreshToken(ctx context.Context, refreshToken string) (service.RefreshToken, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RefreshToken", ctx, refreshToken)
 	ret0, _ := ret[0].(service.RefreshToken)
