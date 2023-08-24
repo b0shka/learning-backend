@@ -1,21 +1,21 @@
 CREATE TABLE "users" (
-  "id" varchar PRIMARY KEY,
+  "id" uuid PRIMARY KEY,
   "email" varchar UNIQUE NOT NULL,
-  "username" varchar UNIQUE,
-  "photo" varchar,
+  "username" varchar UNIQUE NOT NULL,
+  "photo" varchar NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT (now())
 );
 
 CREATE TABLE "verify_emails" (
-  "id" varchar PRIMARY KEY,
+  "id" uuid PRIMARY KEY,
   "email" varchar NOT NULL,
   "secret_code" varchar NOT NULL,
   "expires_at" timestamptz NOT NULL
 );
 
 CREATE TABLE "sessions" (
-  "id" varchar PRIMARY KEY,
-  "user_id" varchar NOT NULL,
+  "id" uuid PRIMARY KEY,
+  "user_id" uuid NOT NULL,
   "refresh_token" varchar UNIQUE NOT NULL,
   "user_agent" varchar NOT NULL,
   "client_ip" varchar NOT NULL,

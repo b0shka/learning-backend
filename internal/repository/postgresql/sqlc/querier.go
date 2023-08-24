@@ -6,17 +6,19 @@ package repository
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 type Querier interface {
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateVerifyEmail(ctx context.Context, arg CreateVerifyEmailParams) (VerifyEmail, error)
-	DeleteUser(ctx context.Context, id string) error
-	DeleteVerifyEmail(ctx context.Context, id string) error
-	GetSession(ctx context.Context, id string) (Session, error)
+	DeleteUser(ctx context.Context, id uuid.UUID) error
+	DeleteVerifyEmail(ctx context.Context, id uuid.UUID) error
+	GetSession(ctx context.Context, id uuid.UUID) (Session, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
-	GetUserById(ctx context.Context, id string) (User, error)
+	GetUserById(ctx context.Context, id uuid.UUID) (User, error)
 	GetVerifyEmail(ctx context.Context, arg GetVerifyEmailParams) (VerifyEmail, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) error
 }

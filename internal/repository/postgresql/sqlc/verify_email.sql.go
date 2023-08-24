@@ -8,26 +8,35 @@ package repository
 import (
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const createVerifyEmail = `-- name: CreateVerifyEmail :one
 INSERT INTO verify_emails (
+    id,
     email,
     secret_code,
     expires_at
 ) VALUES (
-    $1, $2, $3
+    $1, $2, $3, $4
 ) RETURNING id, email, secret_code, expires_at
 `
 
 type CreateVerifyEmailParams struct {
+	ID         uuid.UUID `json:"id"`
 	Email      string    `json:"email"`
 	SecretCode string    `json:"secret_code"`
 	ExpiresAt  time.Time `json:"expires_at"`
 }
 
 func (q *Queries) CreateVerifyEmail(ctx context.Context, arg CreateVerifyEmailParams) (VerifyEmail, error) {
-	row := q.db.QueryRowContext(ctx, createVerifyEmail, arg.Email, arg.SecretCode, arg.ExpiresAt)
+	row := q.db.QueryRowContext(ctx, createVerifyEmail,
+		arg.ID,
+		arg.Email,
+		arg.SecretCode,
+		arg.ExpiresAt,
+	)
 	var i VerifyEmail
 	err := row.Scan(
 		&i.ID,
@@ -43,7 +52,7 @@ DELETE FROM verify_emails
 WHERE id = $1
 `
 
-func (q *Queries) DeleteVerifyEmail(ctx context.Context, id string) error {
+func (q *Queries) DeleteVerifyEmail(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteVerifyEmail, id)
 	return err
 }

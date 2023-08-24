@@ -1,10 +1,11 @@
 -- name: CreateUser :one
 INSERT INTO users (
+    id,
     email,
     username,
     photo
 ) VALUES (
-    $1, $2, $3
+    $1, $2, $3, $4
 ) RETURNING *;
 
 -- name: GetUserById :one

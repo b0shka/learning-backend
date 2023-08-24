@@ -8,10 +8,13 @@ package repository
 import (
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const createSession = `-- name: CreateSession :one
 INSERT INTO "sessions" (
+    id,
     user_id,
     refresh_token,
     user_agent,
@@ -19,12 +22,13 @@ INSERT INTO "sessions" (
     is_blocked,
     expires_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6
+    $1, $2, $3, $4, $5, $6, $7
 ) RETURNING id, user_id, refresh_token, user_agent, client_ip, is_blocked, expires_at
 `
 
 type CreateSessionParams struct {
-	UserID       string    `json:"user_id"`
+	ID           uuid.UUID `json:"id"`
+	UserID       uuid.UUID `json:"user_id"`
 	RefreshToken string    `json:"refresh_token"`
 	UserAgent    string    `json:"user_agent"`
 	ClientIp     string    `json:"client_ip"`
@@ -34,6 +38,7 @@ type CreateSessionParams struct {
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
 	row := q.db.QueryRowContext(ctx, createSession,
+		arg.ID,
 		arg.UserID,
 		arg.RefreshToken,
 		arg.UserAgent,
@@ -59,7 +64,7 @@ SELECT id, user_id, refresh_token, user_agent, client_ip, is_blocked, expires_at
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetSession(ctx context.Context, id string) (Session, error) {
+func (q *Queries) GetSession(ctx context.Context, id uuid.UUID) (Session, error) {
 	row := q.db.QueryRowContext(ctx, getSession, id)
 	var i Session
 	err := row.Scan(

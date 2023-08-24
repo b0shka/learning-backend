@@ -7,27 +7,35 @@ package repository
 
 import (
 	"context"
-	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
+    id,
     email,
     username,
     photo
 ) VALUES (
-    $1, $2, $3
+    $1, $2, $3, $4
 ) RETURNING id, email, username, photo, created_at
 `
 
 type CreateUserParams struct {
-	Email    string         `json:"email"`
-	Username sql.NullString `json:"username"`
-	Photo    sql.NullString `json:"photo"`
+	ID       uuid.UUID `json:"id"`
+	Email    string    `json:"email"`
+	Username string    `json:"username"`
+	Photo    string    `json:"photo"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser, arg.Email, arg.Username, arg.Photo)
+	row := q.db.QueryRowContext(ctx, createUser,
+		arg.ID,
+		arg.Email,
+		arg.Username,
+		arg.Photo,
+	)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -44,7 +52,7 @@ DELETE FROM users
 WHERE id = $1
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, id string) error {
+func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteUser, id)
 	return err
 }
@@ -72,7 +80,7 @@ SELECT id, email, username, photo, created_at FROM users
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetUserById(ctx context.Context, id string) (User, error) {
+func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserById, id)
 	var i User
 	err := row.Scan(
@@ -93,9 +101,9 @@ WHERE id = $1
 `
 
 type UpdateUserParams struct {
-	ID       string         `json:"id"`
-	Username sql.NullString `json:"username"`
-	Photo    sql.NullString `json:"photo"`
+	ID       uuid.UUID `json:"id"`
+	Username string    `json:"username"`
+	Photo    string    `json:"photo"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {

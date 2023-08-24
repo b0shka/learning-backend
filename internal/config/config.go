@@ -12,16 +12,26 @@ import (
 
 type (
 	Config struct {
-		Mongo MongoConfig `mapstructure:"port"`
-		HTTP  HTTPConfig  `mapstructure:"http"`
-		Auth  AuthConfig  `mapstructure:"auth"`
-		SMTP  SMTPConfig  `mapstructure:"smtp"`
-		Email EmailConfig `mapstructure:"email"`
+		Mongo    MongoConfig
+		Postgres PostgresConfig
+		HTTP     HTTPConfig  `mapstructure:"http"`
+		Auth     AuthConfig  `mapstructure:"auth"`
+		SMTP     SMTPConfig  `mapstructure:"smtp"`
+		Email    EmailConfig `mapstructure:"email"`
 	}
 
 	MongoConfig struct {
 		URI    string `envconfig:"MONGO_URI"`
 		DBName string `envconfig:"MONGO_DB_NAME"`
+	}
+
+	PostgresConfig struct {
+		User     string `envconfig:"POSTGRESQL_USER"`
+		Password string `envconfig:"POSTGRESQL_PASSWORD"`
+		Host     string `envconfig:"POSTGRESQL_HOST"`
+		Port     string `envconfig:"POSTGRESQL_PORT"`
+		DBName   string `envconfig:"POSTGRESQL_DB_NAME"`
+		Source   string `envconfig:"POSTGRESQL_SOURCE"`
 	}
 
 	EmailConfig struct {
