@@ -17,7 +17,6 @@ import (
 	"github.com/b0shka/backend/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -106,8 +105,8 @@ func TestHandler_sendCodeEmail(t *testing.T) {
 
 			router.ServeHTTP(recorder, req)
 
-			assert.Equal(t, testCase.statusCode, recorder.Code)
-			assert.Equal(t, testCase.responseBody, recorder.Body.String())
+			require.Equal(t, testCase.statusCode, recorder.Code)
+			require.Equal(t, testCase.responseBody, recorder.Body.String())
 		})
 	}
 }
@@ -136,10 +135,15 @@ func TestHandler_userSignIn(t *testing.T) {
 			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {
 				s.EXPECT().
 					SignIn(gomock.Any(), input).
-					Return(service.Tokens{AccessToken: "access_token"}, nil)
+					Return(service.Tokens{
+						RefreshToken:          "refresh_token",
+						RefreshTokenExpiresAt: time.Now().Add(time.Hour * 720).Unix(),
+						AccessToken:           "access_token",
+						AccessTokenExpiresAt:  time.Now().Add(time.Minute * 15).Unix(),
+					}, nil)
 			},
 			statusCode:   200,
-			responseBody: `{"access_token":"access_token"}`,
+			responseBody: fmt.Sprintf(`{"refresh_token":"refresh_token","refresh_token_expites_at":%d,"access_token":"access_token","access_token_expires_at":%d}`, time.Now().Add(time.Hour*720).Unix(), time.Now().Add(time.Minute*15).Unix()),
 		},
 		{
 			name: "error sign in",
@@ -251,8 +255,8 @@ func TestHandler_userSignIn(t *testing.T) {
 
 			router.ServeHTTP(recorder, req)
 
-			assert.Equal(t, testCase.statusCode, recorder.Code)
-			assert.Equal(t, testCase.responseBody, recorder.Body.String())
+			require.Equal(t, testCase.statusCode, recorder.Code)
+			require.Equal(t, testCase.responseBody, recorder.Body.String())
 		})
 	}
 }
@@ -288,7 +292,7 @@ func TestHandler_getUserById(t *testing.T) {
 					}, nil)
 			},
 			statusCode:   200,
-			responseBody: fmt.Sprintf(`{"id":"%s","email":"email@ya.ru","photo":"","name":"Vanya","created_at":%d}`, userId.Hex(), time.Now().Unix()),
+			responseBody: fmt.Sprintf(`{"id":"%s","email":"email@ya.ru","photo":"","name":"Vanya","created_at":%v}`, userId.Hex(), time.Now().Unix()),
 		},
 		{
 			name:      "no authorization",
@@ -361,8 +365,8 @@ func TestHandler_getUserById(t *testing.T) {
 			testCase.setupAuth(t, req, tokenManager)
 			router.ServeHTTP(recorder, req)
 
-			assert.Equal(t, testCase.statusCode, recorder.Code)
-			assert.Equal(t, testCase.responseBody, recorder.Body.String())
+			require.Equal(t, testCase.statusCode, recorder.Code)
+			require.Equal(t, testCase.responseBody, recorder.Body.String())
 		})
 	}
 }
@@ -511,8 +515,8 @@ func TestHandler_updateUser(t *testing.T) {
 			testCase.setupAuth(t, req, tokenManager)
 			router.ServeHTTP(recorder, req)
 
-			assert.Equal(t, testCase.statusCode, recorder.Code)
-			assert.Equal(t, testCase.responseBody, recorder.Body.String())
+			require.Equal(t, testCase.statusCode, recorder.Code)
+			require.Equal(t, testCase.responseBody, recorder.Body.String())
 		})
 	}
 }

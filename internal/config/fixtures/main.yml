@@ -6,8 +6,9 @@ http:
 
 auth:
   jwt:
-    accessTokenTTL: 720h
-  sercetCodeLifetime: 900
+    accessTokenTTL: 15m
+    refreshTokenTTL: 720h
+  sercetCodeLifetime: 5m
 
 smtp:
   host: "smtp.gmail.com"

@@ -10,6 +10,7 @@ import (
 
 	domain "github.com/b0shka/backend/internal/domain"
 	service "github.com/b0shka/backend/internal/service"
+	gin "github.com/gin-gonic/gin"
 	gomock "github.com/golang/mock/gomock"
 	primitive "go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -52,6 +53,21 @@ func (mr *MockUsersMockRecorder) Get(ctx, identifier interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockUsers)(nil).Get), ctx, identifier)
 }
 
+// RefreshToken mocks base method.
+func (m *MockUsers) RefreshToken(ctx *gin.Context, refreshToken string) (service.RefreshToken, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshToken", ctx, refreshToken)
+	ret0, _ := ret[0].(service.RefreshToken)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RefreshToken indicates an expected call of RefreshToken.
+func (mr *MockUsersMockRecorder) RefreshToken(ctx, refreshToken interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshToken", reflect.TypeOf((*MockUsers)(nil).RefreshToken), ctx, refreshToken)
+}
+
 // SendCodeEmail mocks base method.
 func (m *MockUsers) SendCodeEmail(ctx context.Context, email string) error {
 	m.ctrl.T.Helper()
@@ -67,7 +83,7 @@ func (mr *MockUsersMockRecorder) SendCodeEmail(ctx, email interface{}) *gomock.C
 }
 
 // SignIn mocks base method.
-func (m *MockUsers) SignIn(ctx context.Context, inp service.UserSignInInput) (service.Tokens, error) {
+func (m *MockUsers) SignIn(ctx *gin.Context, inp service.UserSignInInput) (service.Tokens, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SignIn", ctx, inp)
 	ret0, _ := ret[0].(service.Tokens)

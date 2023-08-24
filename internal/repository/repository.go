@@ -12,9 +12,11 @@ type Users interface {
 	AddVerifyEmail(ctx context.Context, verifyEmail domain.VerifyEmail) error
 	GetVerifyEmail(ctx context.Context, email, code string) (domain.VerifyEmail, error)
 	RemoveVerifyEmail(ctx context.Context, id primitive.ObjectID) error
-	Create(ctx context.Context, user domain.User) error
-	Get(ctx context.Context, identifier interface{}) (domain.User, error)
-	Update(ctx context.Context, id primitive.ObjectID, user domain.UserUpdate) error
+	CreateSession(ctx context.Context, session domain.Session) error
+	GetSession(ctx context.Context, id primitive.ObjectID) (domain.Session, error)
+	CreateUser(ctx context.Context, user domain.User) error
+	GetUser(ctx context.Context, identifier interface{}) (domain.User, error)
+	UpdateUser(ctx context.Context, id primitive.ObjectID, user domain.UserUpdate) error
 }
 
 type Repositories struct {

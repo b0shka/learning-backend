@@ -54,16 +54,18 @@ func TestAuthPaseto_CreateTokenAndVerify(t *testing.T) {
 
 	userId := primitive.NewObjectID()
 	duration := time.Minute
-	payload, err := NewPayload(userId, duration)
+	testPayload, err := NewPayload(userId, duration)
 	require.NoError(t, err)
 
-	token, err := manager.CreateToken(userId, duration)
+	token, payload, err := manager.CreateToken(userId, duration)
 	require.NoError(t, err)
 	require.NotEmpty(t, token)
+	require.NotEmpty(t, payload)
 
-	tokenExpired, err := manager.CreateToken(userId, -duration)
+	tokenExpired, payload, err := manager.CreateToken(userId, -duration)
 	require.NoError(t, err)
 	require.NotEmpty(t, token)
+	require.NotEmpty(t, payload)
 
 	tests := []struct {
 		name          string
@@ -74,27 +76,27 @@ func TestAuthPaseto_CreateTokenAndVerify(t *testing.T) {
 	}{
 		{
 			name:      "ok",
-			payload:   payload,
+			payload:   testPayload,
 			token:     token,
 			shouldErr: false,
 		},
 		{
 			name:          "invalid token",
-			payload:       payload,
+			payload:       testPayload,
 			token:         "",
 			shouldErr:     true,
 			expectedError: domain.ErrInvalidToken,
 		},
 		{
 			name:          "invalid token",
-			payload:       payload,
+			payload:       testPayload,
 			token:         "token",
 			shouldErr:     true,
 			expectedError: domain.ErrInvalidToken,
 		},
 		{
 			name:          "expired token",
-			payload:       payload,
+			payload:       testPayload,
 			token:         tokenExpired,
 			shouldErr:     true,
 			expectedError: domain.ErrExpiredToken,
@@ -114,8 +116,8 @@ func TestAuthPaseto_CreateTokenAndVerify(t *testing.T) {
 				require.NotEmpty(t, payload)
 				require.NotZero(t, payload.ID)
 				require.Equal(t, testCase.payload.UserID, payload.UserID)
-				require.WithinDuration(t, testCase.payload.IssuedAt, payload.IssuedAt, time.Second)
-				require.WithinDuration(t, testCase.payload.ExpiredAt, payload.ExpiredAt, time.Second)
+				require.Equal(t, testCase.payload.IssuedAt, payload.IssuedAt)
+				require.Equal(t, testCase.payload.ExpiresAt, payload.ExpiresAt)
 			}
 		})
 	}

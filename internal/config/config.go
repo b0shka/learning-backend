@@ -41,14 +41,15 @@ type (
 	}
 
 	AuthConfig struct {
-		JWT                JWTConfig `mapstructure:"jwt"`
-		SercetCodeLifetime int       `mapstructure:"sercetCodeLifetime"`
-		SecretKey          string    `envconfig:"SECRET_KEY"`
-		CodeSalt           string    `envconfig:"CODE_SALT"`
+		JWT                JWTConfig     `mapstructure:"jwt"`
+		SercetCodeLifetime time.Duration `mapstructure:"sercetCodeLifetime"`
+		SecretKey          string        `envconfig:"SECRET_KEY"`
+		CodeSalt           string        `envconfig:"CODE_SALT"`
 	}
 
 	JWTConfig struct {
-		AccessTokenTTL time.Duration `mapstructure:"accessTokenTTL"`
+		AccessTokenTTL  time.Duration `mapstructure:"accessTokenTTL"`
+		RefreshTokenTTL time.Duration `mapstructure:"refreshTokenTTL"`
 	}
 
 	HTTPConfig struct {

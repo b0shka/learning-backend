@@ -47,12 +47,33 @@ func (r *UsersRepo) RemoveVerifyEmail(ctx context.Context, id primitive.ObjectID
 	return err
 }
 
-func (r *UsersRepo) Create(ctx context.Context, user domain.User) error {
+func (r *UsersRepo) CreateSession(ctx context.Context, session domain.Session) error {
+	_, err := r.db.Database().Collection(sessionsCollection).InsertOne(ctx, session)
+	return err
+}
+
+func (r *UsersRepo) GetSession(ctx context.Context, id primitive.ObjectID) (domain.Session, error) {
+	var session domain.Session
+	filter := bson.M{
+		"_id": id,
+	}
+
+	if err := r.db.Database().Collection(sessionsCollection).FindOne(ctx, filter).Decode(&session); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return domain.Session{}, domain.ErrSessionNotFound
+		}
+		return domain.Session{}, err
+	}
+
+	return session, nil
+}
+
+func (r *UsersRepo) CreateUser(ctx context.Context, user domain.User) error {
 	_, err := r.db.InsertOne(ctx, user)
 	return err
 }
 
-func (r *UsersRepo) Get(ctx context.Context, identifier interface{}) (domain.User, error) {
+func (r *UsersRepo) GetUser(ctx context.Context, identifier interface{}) (domain.User, error) {
 	var user domain.User
 	var filter bson.M
 
@@ -79,7 +100,7 @@ func (r *UsersRepo) Get(ctx context.Context, identifier interface{}) (domain.Use
 	return user, nil
 }
 
-func (r *UsersRepo) Update(ctx context.Context, id primitive.ObjectID, user domain.UserUpdate) error {
+func (r *UsersRepo) UpdateUser(ctx context.Context, id primitive.ObjectID, user domain.UserUpdate) error {
 	_, err := r.db.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": user})
 	return err
 }

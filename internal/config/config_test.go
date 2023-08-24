@@ -71,9 +71,10 @@ func TestInitConfig(t *testing.T) {
 				},
 				Auth: AuthConfig{
 					JWT: JWTConfig{
-						AccessTokenTTL: time.Minute * 60 * 720,
+						AccessTokenTTL:  time.Minute * 15,
+						RefreshTokenTTL: time.Hour * 720,
 					},
-					SercetCodeLifetime: 900,
+					SercetCodeLifetime: time.Minute * 5,
 					SecretKey:          "sercet_key",
 					CodeSalt:           "code_salt",
 				},

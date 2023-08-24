@@ -7,6 +7,6 @@ import (
 )
 
 type Manager interface {
-	CreateToken(userId primitive.ObjectID, tokenTTL time.Duration) (string, error)
+	CreateToken(userId primitive.ObjectID, tokenTTL time.Duration) (string, *Payload, error)
 	VerifyToken(accessToken string) (*Payload, error)
 }

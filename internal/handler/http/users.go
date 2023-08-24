@@ -17,6 +17,7 @@ func (h *Handler) initUsersRoutes(api *gin.RouterGroup) {
 		{
 			authenticating.POST("/send-code", h.sendCodeEmail)
 			authenticating.POST("/sign-in", h.userSignIn)
+			authenticating.POST("/refresh", h.refreshToken)
 		}
 
 		authenticated := users.Group("/").Use(userIdentity(h.tokenManager))
@@ -65,7 +66,10 @@ type userSignInRequest struct {
 }
 
 type tokenResponse struct {
-	AccessToken string `json:"access_token"`
+	RefreshToken          string `json:"refresh_token"`
+	RefreshTokenExpiresAt int64  `json:"refresh_token_expites_at"`
+	AccessToken           string `json:"access_token"`
+	AccessTokenExpiresAt  int64  `json:"access_token_expires_at"`
 }
 
 //	@Summary		User SignIn
@@ -101,7 +105,51 @@ func (h *Handler) userSignIn(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, tokenResponse{
-		AccessToken: res.AccessToken,
+		RefreshToken:          res.RefreshToken,
+		RefreshTokenExpiresAt: res.RefreshTokenExpiresAt,
+		AccessToken:           res.AccessToken,
+		AccessTokenExpiresAt:  res.AccessTokenExpiresAt,
+	})
+}
+
+type refreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
+type refreshTokenResponse struct {
+	AccessToken          string `json:"access_token"`
+	AccessTokenExpiresAt int64  `json:"access_token_expires_at"`
+}
+
+func (h *Handler) refreshToken(c *gin.Context) {
+	var inp refreshTokenRequest
+	if err := c.BindJSON(&inp); err != nil {
+		newResponse(c, http.StatusBadRequest, domain.ErrInvalidInput.Error())
+		return
+	}
+
+	res, err := h.services.Users.RefreshToken(c, inp.RefreshToken)
+	if err != nil {
+		if errors.Is(err, domain.ErrSessionNotFound) {
+			newResponse(c, http.StatusNotFound, err.Error())
+			return
+		}
+		if errors.Is(err, domain.ErrSessionBlocked) ||
+			errors.Is(err, domain.ErrIncorrectSessionUser) ||
+			errors.Is(err, domain.ErrMismatchedSession) ||
+			errors.Is(err, domain.ErrExpiredToken) ||
+			errors.Is(err, domain.ErrInvalidToken) {
+			newResponse(c, http.StatusUnauthorized, err.Error())
+			return
+		}
+
+		newResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, refreshTokenResponse{
+		AccessToken:          res.AccessToken,
+		AccessTokenExpiresAt: res.AccessTokenExpiresAt,
 	})
 }
 

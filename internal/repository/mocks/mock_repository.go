@@ -50,33 +50,62 @@ func (mr *MockUsersMockRecorder) AddVerifyEmail(ctx, verifyEmail interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddVerifyEmail", reflect.TypeOf((*MockUsers)(nil).AddVerifyEmail), ctx, verifyEmail)
 }
 
-// Create mocks base method.
-func (m *MockUsers) Create(ctx context.Context, user domain.User) error {
+// CreateSession mocks base method.
+func (m *MockUsers) CreateSession(ctx context.Context, session domain.Session) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Create", ctx, user)
+	ret := m.ctrl.Call(m, "CreateSession", ctx, session)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Create indicates an expected call of Create.
-func (mr *MockUsersMockRecorder) Create(ctx, user interface{}) *gomock.Call {
+// CreateSession indicates an expected call of CreateSession.
+func (mr *MockUsersMockRecorder) CreateSession(ctx, session interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockUsers)(nil).Create), ctx, user)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSession", reflect.TypeOf((*MockUsers)(nil).CreateSession), ctx, session)
 }
 
-// Get mocks base method.
-func (m *MockUsers) Get(ctx context.Context, identifier interface{}) (domain.User, error) {
+// CreateUser mocks base method.
+func (m *MockUsers) CreateUser(ctx context.Context, user domain.User) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", ctx, identifier)
+	ret := m.ctrl.Call(m, "CreateUser", ctx, user)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateUser indicates an expected call of CreateUser.
+func (mr *MockUsersMockRecorder) CreateUser(ctx, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockUsers)(nil).CreateUser), ctx, user)
+}
+
+// GetSession mocks base method.
+func (m *MockUsers) GetSession(ctx context.Context, id primitive.ObjectID) (domain.Session, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSession", ctx, id)
+	ret0, _ := ret[0].(domain.Session)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSession indicates an expected call of GetSession.
+func (mr *MockUsersMockRecorder) GetSession(ctx, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSession", reflect.TypeOf((*MockUsers)(nil).GetSession), ctx, id)
+}
+
+// GetUser mocks base method.
+func (m *MockUsers) GetUser(ctx context.Context, identifier interface{}) (domain.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUser", ctx, identifier)
 	ret0, _ := ret[0].(domain.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Get indicates an expected call of Get.
-func (mr *MockUsersMockRecorder) Get(ctx, identifier interface{}) *gomock.Call {
+// GetUser indicates an expected call of GetUser.
+func (mr *MockUsersMockRecorder) GetUser(ctx, identifier interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockUsers)(nil).Get), ctx, identifier)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUser", reflect.TypeOf((*MockUsers)(nil).GetUser), ctx, identifier)
 }
 
 // GetVerifyEmail mocks base method.
@@ -108,16 +137,16 @@ func (mr *MockUsersMockRecorder) RemoveVerifyEmail(ctx, id interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveVerifyEmail", reflect.TypeOf((*MockUsers)(nil).RemoveVerifyEmail), ctx, id)
 }
 
-// Update mocks base method.
-func (m *MockUsers) Update(ctx context.Context, id primitive.ObjectID, user domain.UserUpdate) error {
+// UpdateUser mocks base method.
+func (m *MockUsers) UpdateUser(ctx context.Context, id primitive.ObjectID, user domain.UserUpdate) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update", ctx, id, user)
+	ret := m.ctrl.Call(m, "UpdateUser", ctx, id, user)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Update indicates an expected call of Update.
-func (mr *MockUsersMockRecorder) Update(ctx, id, user interface{}) *gomock.Call {
+// UpdateUser indicates an expected call of UpdateUser.
+func (mr *MockUsersMockRecorder) UpdateUser(ctx, id, user interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockUsers)(nil).Update), ctx, id, user)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockUsers)(nil).UpdateUser), ctx, id, user)
 }
