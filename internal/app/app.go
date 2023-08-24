@@ -11,7 +11,7 @@ import (
 
 	"github.com/b0shka/backend/internal/config"
 	handler "github.com/b0shka/backend/internal/handler/http"
-	"github.com/b0shka/backend/internal/repository"
+	repositoryMongodb "github.com/b0shka/backend/internal/repository/mongodb"
 	"github.com/b0shka/backend/internal/server"
 	"github.com/b0shka/backend/internal/service"
 	"github.com/b0shka/backend/pkg/auth"
@@ -67,7 +67,7 @@ func Run(configPath string) {
 		return
 	}
 
-	repos := repository.NewRepositories(db)
+	repos := repositoryMongodb.NewRepositories(db)
 	services := service.NewServices(service.Deps{
 		Repos:        repos,
 		Hasher:       hasher,

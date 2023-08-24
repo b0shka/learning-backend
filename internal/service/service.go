@@ -5,7 +5,7 @@ import (
 
 	"github.com/b0shka/backend/internal/config"
 	"github.com/b0shka/backend/internal/domain"
-	"github.com/b0shka/backend/internal/repository"
+	repositoryMongodb "github.com/b0shka/backend/internal/repository/mongodb"
 	"github.com/b0shka/backend/pkg/auth"
 	"github.com/b0shka/backend/pkg/email"
 	"github.com/b0shka/backend/pkg/hash"
@@ -43,7 +43,7 @@ type Services struct {
 }
 
 type Deps struct {
-	Repos        *repository.Repositories
+	Repos        *repositoryMongodb.Repositories
 	Hasher       hash.Hasher
 	TokenManager auth.Manager
 	EmailService email.EmailService

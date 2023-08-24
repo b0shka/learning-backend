@@ -9,7 +9,7 @@ import (
 
 	"github.com/b0shka/backend/internal/config"
 	"github.com/b0shka/backend/internal/domain"
-	mock_repository "github.com/b0shka/backend/internal/repository/mocks"
+	mock_repository "github.com/b0shka/backend/internal/repository/mongodb/mocks"
 	"github.com/b0shka/backend/internal/service"
 	"github.com/b0shka/backend/pkg/email"
 	"github.com/b0shka/backend/pkg/hash"

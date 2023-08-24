@@ -1,0 +1,16 @@
+-- name: CreateVerifyEmail :one
+INSERT INTO verify_emails (
+    email,
+    secret_code,
+    expires_at
+) VALUES (
+    $1, $2, $3
+) RETURNING *;
+
+-- name: GetVerifyEmail :one
+SELECT * FROM verify_emails
+WHERE email = $1 AND secret_code = $2 LIMIT 1;
+
+-- name: DeleteVerifyEmail :exec
+DELETE FROM verify_emails
+WHERE id = $1;

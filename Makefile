@@ -3,7 +3,7 @@ REGISTRY = b0shka
 API_IMAGE = backend
 TAG = latest
 
-.PHONY: build start test lint swag mock docker-build docker-run docker-push
+.PHONY: build start test lint swag mock docker-build docker-run docker-push docker-run-postgres createdb dropdb migrateup migratedown sqlc
 .DEFAULT_GOAL := start
 
 build:
@@ -38,3 +38,21 @@ docker-run:
 
 docker-push:
 	docker push ${REGISTRY}/${API_IMAGE}:${TAG}
+
+docker-run-postgres:
+	docker run --name postgres15 -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=qwerty -d postgres:15-alpine
+
+createdb:
+	docker exec -it postgres15 createdb --username=root --owner=root service
+
+dropdb:
+	docker exec -it postgres15 dropdb service
+
+migrateup:
+	migrate -path internal/repository/postgresql/migration -database "postgresql://root:qwerty@localhost:5432/service?sslmode=disable" -verbose up
+
+migratedown:
+	migrate -path internal/repository/postgresql/migration -database "postgresql://root:qwerty@localhost:5432/service?sslmode=disable" -verbose down
+
+sqlc:
+	sqlc generate

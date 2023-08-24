@@ -10,7 +10,7 @@ import (
 
 	"github.com/b0shka/backend/internal/config"
 	"github.com/b0shka/backend/internal/domain"
-	"github.com/b0shka/backend/internal/repository"
+	repositoryMongodb "github.com/b0shka/backend/internal/repository/mongodb"
 	"github.com/b0shka/backend/pkg/auth"
 	"github.com/b0shka/backend/pkg/email"
 	"github.com/b0shka/backend/pkg/hash"
@@ -20,7 +20,7 @@ import (
 )
 
 type UsersService struct {
-	repo         repository.Users
+	repo         repositoryMongodb.Users
 	hasher       hash.Hasher
 	tokenManager auth.Manager
 	emailService email.EmailService
@@ -29,7 +29,7 @@ type UsersService struct {
 }
 
 func NewUsersService(
-	repo repository.Users,
+	repo repositoryMongodb.Users,
 	hasher hash.Hasher,
 	tokenManager auth.Manager,
 	emailService email.EmailService,
