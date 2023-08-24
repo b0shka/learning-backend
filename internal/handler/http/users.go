@@ -121,6 +121,18 @@ type refreshTokenResponse struct {
 	AccessTokenExpiresAt int64  `json:"access_token_expires_at"`
 }
 
+//	@Summary		User Refresh Token
+//	@Tags			auth
+//	@Description	user refresh token
+//	@ModuleID		refreshToken
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		refreshTokenRequest	true	"refresh info"
+//	@Success		201		{object}	refreshTokenResponse
+//	@Failure		400,404	{object}	response
+//	@Failure		500		{object}	response
+//	@Failure		default	{object}	response
+//	@Router			/user/auth/refresh [post]
 func (h *Handler) refreshToken(c *gin.Context) {
 	var inp refreshTokenRequest
 	if err := c.BindJSON(&inp); err != nil {
