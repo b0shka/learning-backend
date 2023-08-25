@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"errors"
 	"html/template"
 	"strconv"
@@ -10,17 +11,18 @@ import (
 
 	"github.com/b0shka/backend/internal/config"
 	"github.com/b0shka/backend/internal/domain"
-	repositoryMongodb "github.com/b0shka/backend/internal/repository/mongodb"
+	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
 	"github.com/b0shka/backend/pkg/auth"
 	"github.com/b0shka/backend/pkg/email"
 	"github.com/b0shka/backend/pkg/hash"
 	"github.com/b0shka/backend/pkg/utils"
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/google/uuid"
 )
 
 type UsersService struct {
-	repo         repositoryMongodb.Users
+	// repo    repository.Users
+	repo         *repository.Store
 	hasher       hash.Hasher
 	tokenManager auth.Manager
 	emailService email.EmailService
@@ -29,7 +31,8 @@ type UsersService struct {
 }
 
 func NewUsersService(
-	repo repositoryMongodb.Users,
+	// repo repository.Users,
+	repo *repository.Store,
 	hasher hash.Hasher,
 	tokenManager auth.Manager,
 	emailService email.EmailService,
@@ -49,7 +52,6 @@ func NewUsersService(
 func (s *UsersService) SendCodeEmail(ctx context.Context, email string) error {
 	secretCode := utils.RandomInt(100000, 999999)
 	secretCodeStr := strconv.Itoa(int(secretCode))
-
 	secretCodeHash, err := s.hasher.HashCode(secretCodeStr)
 	if err != nil {
 		return err
@@ -69,70 +71,88 @@ func (s *UsersService) SendCodeEmail(ctx context.Context, email string) error {
 		return err
 	}
 
-	emailConfig := domain.VerifyEmailConfig{
+	err = s.emailService.SendEmail(domain.VerifyEmailConfig{
 		Subject: s.emailConfig.Subjects.Verify,
 		Content: content.String(),
-	}
-
-	err = s.emailService.SendEmail(emailConfig, email)
+	}, email)
 	if err != nil {
 		return err
 	}
 
-	verifyEmail := domain.VerifyEmail{
-		Email:          email,
-		SecretCodeHash: secretCodeHash,
-		ExpiresAt:      time.Now().Add(s.authConfig.SercetCodeLifetime).Unix(),
+	user, err := s.repo.GetUserByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			userID, err := uuid.NewRandom()
+			if err != nil {
+				return err
+			}
+
+			user, err = s.repo.CreateUser(ctx, repository.CreateUserParams{
+				ID:    userID,
+				Email: email,
+			})
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
-	return s.repo.AddVerifyEmail(ctx, verifyEmail)
+
+	verifyEmailID, err := uuid.NewRandom()
+	if err != nil {
+		return err
+	}
+
+	verifyEmail := repository.CreateVerifyEmailParams{
+		ID:         verifyEmailID,
+		Email:      user.Email,
+		SecretCode: secretCodeHash,
+		ExpiresAt:  time.Now().Add(s.authConfig.SercetCodeLifetime),
+	}
+
+	_, err = s.repo.CreateVerifyEmail(ctx, verifyEmail)
+	return err
 }
 
 func (s *UsersService) SignIn(ctx *gin.Context, inp UserSignInInput) (Tokens, error) {
 	secretCodeStr := strconv.Itoa(int(inp.SecretCode))
-
 	secretCodeHash, err := s.hasher.HashCode(secretCodeStr)
 	if err != nil {
 		return Tokens{}, err
 	}
 
-	verifyEmail, err := s.repo.GetVerifyEmail(ctx, inp.Email, secretCodeHash)
+	arg := repository.GetVerifyEmailParams{
+		Email:      inp.Email,
+		SecretCode: secretCodeHash,
+	}
+
+	verifyEmail, err := s.repo.GetVerifyEmail(ctx, arg)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Tokens{}, domain.ErrSecretCodeInvalid
+		}
 		return Tokens{}, err
 	}
 
-	if time.Now().Unix() > verifyEmail.ExpiresAt {
+	if time.Now().After(verifyEmail.ExpiresAt) {
 		return Tokens{}, domain.ErrSecretCodeExpired
 	}
 
-	err = s.repo.RemoveVerifyEmail(ctx, verifyEmail.ID)
+	err = s.repo.DeleteVerifyEmailById(ctx, verifyEmail.ID)
 	if err != nil {
 		return Tokens{}, err
 	}
 
-	user, err := s.repo.GetUser(ctx, inp.Email)
-	var userID primitive.ObjectID
+	user, err := s.repo.GetUserByEmail(ctx, inp.Email)
 	if err != nil {
-		if errors.Is(err, domain.ErrUserNotFound) {
-			userID = primitive.NewObjectID()
-			err := s.repo.CreateUser(ctx, domain.User{
-				ID:        userID,
-				Email:     inp.Email,
-				CreatedAt: time.Now().Unix(),
-			})
-			if err != nil {
-				return Tokens{}, err
-			}
-		} else {
-			return Tokens{}, err
-		}
-	} else {
-		userID = user.ID
+		return Tokens{}, err
 	}
 
-	return s.createSession(ctx, userID)
+	return s.createSession(ctx, user.ID)
 }
 
-func (s *UsersService) createSession(ctx *gin.Context, id primitive.ObjectID) (Tokens, error) {
+func (s *UsersService) createSession(ctx *gin.Context, id uuid.UUID) (Tokens, error) {
 	var res Tokens
 
 	refreshToken, refreshPayload, err := s.tokenManager.CreateToken(
@@ -157,17 +177,17 @@ func (s *UsersService) createSession(ctx *gin.Context, id primitive.ObjectID) (T
 	res.AccessToken = accessToken
 	res.AccessTokenExpiresAt = accessPayload.ExpiresAt
 
-	session := domain.Session{
+	session := repository.CreateSessionParams{
 		ID:           refreshPayload.ID,
 		UserID:       id,
 		RefreshToken: res.RefreshToken,
 		UserAgent:    ctx.Request.UserAgent(),
-		ClientIP:     ctx.ClientIP(),
+		ClientIp:     ctx.ClientIP(),
 		IsBlocked:    false,
 		ExpiresAt:    refreshPayload.ExpiresAt,
 	}
 
-	if err := s.repo.CreateSession(ctx, session); err != nil {
+	if _, err := s.repo.CreateSession(ctx, session); err != nil {
 		return Tokens{}, err
 	}
 
@@ -199,7 +219,7 @@ func (s *UsersService) RefreshToken(ctx context.Context, refreshToken string) (R
 		return RefreshToken{}, domain.ErrMismatchedSession
 	}
 
-	if time.Now().Unix() > session.ExpiresAt {
+	if time.Now().After(session.ExpiresAt) {
 		return RefreshToken{}, domain.ErrExpiredToken
 	}
 
@@ -217,10 +237,34 @@ func (s *UsersService) RefreshToken(ctx context.Context, refreshToken string) (R
 	return res, nil
 }
 
-func (s *UsersService) Get(ctx context.Context, identifier interface{}) (domain.User, error) {
-	return s.repo.GetUser(ctx, identifier)
+func (s *UsersService) GetById(ctx context.Context, id uuid.UUID) (repository.User, error) {
+	return s.repo.GetUserById(ctx, id)
 }
 
-func (s *UsersService) Update(ctx context.Context, id primitive.ObjectID, user domain.UserUpdate) error {
-	return s.repo.UpdateUser(ctx, id, user)
+func (s *UsersService) Update(ctx context.Context, id uuid.UUID, user domain.UserUpdate) error {
+	arg := repository.UpdateUserParams{
+		ID:       id,
+		Username: user.Username,
+		Photo:    user.Photo,
+	}
+	return s.repo.UpdateUser(ctx, arg)
+}
+
+func (s *UsersService) Delete(ctx context.Context, id uuid.UUID) error {
+	err := s.repo.DeleteSession(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	user, err := s.repo.GetUserById(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	err = s.repo.DeleteVerifyEmailByEmail(ctx, user.Email)
+	if err != nil {
+		return err
+	}
+
+	return s.repo.DeleteUser(ctx, id)
 }

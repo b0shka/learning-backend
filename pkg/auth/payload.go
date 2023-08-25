@@ -4,30 +4,33 @@ import (
 	"time"
 
 	"github.com/b0shka/backend/internal/domain"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/google/uuid"
 )
 
 type Payload struct {
-	ID        primitive.ObjectID `json:"id"`
-	UserID    primitive.ObjectID `json:"user_id"`
-	IssuedAt  int64              `json:"issued_at"`
-	ExpiresAt int64              `json:"expires_at"`
+	ID        uuid.UUID `json:"id"`
+	UserID    uuid.UUID `json:"user_id"`
+	IssuedAt  time.Time `json:"issued_at"`
+	ExpiresAt time.Time `json:"expires_at"`
 }
 
-func NewPayload(userId primitive.ObjectID, duration time.Duration) (*Payload, error) {
-	payloadID := primitive.NewObjectID()
+func NewPayload(userId uuid.UUID, duration time.Duration) (*Payload, error) {
+	payloadID, err := uuid.NewRandom()
+	if err != nil {
+		return nil, err
+	}
 
 	payload := &Payload{
 		ID:        payloadID,
 		UserID:    userId,
-		IssuedAt:  time.Now().Unix(),
-		ExpiresAt: time.Now().Add(duration).Unix(),
+		IssuedAt:  time.Now(),
+		ExpiresAt: time.Now().Add(duration),
 	}
 	return payload, nil
 }
 
 func (payload *Payload) Valid() error {
-	if time.Now().Unix() > payload.ExpiresAt {
+	if time.Now().After(payload.ExpiresAt) {
 		return domain.ErrExpiredToken
 	}
 	return nil

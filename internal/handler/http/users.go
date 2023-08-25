@@ -1,8 +1,10 @@
 package http
 
 import (
+	"database/sql"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/b0shka/backend/internal/domain"
 	"github.com/b0shka/backend/internal/service"
@@ -13,17 +15,18 @@ import (
 func (h *Handler) initUsersRoutes(api *gin.RouterGroup) {
 	users := api.Group("/users")
 	{
-		authenticating := users.Group("/auth")
+		auth := users.Group("/auth")
 		{
-			authenticating.POST("/send-code", h.sendCodeEmail)
-			authenticating.POST("/sign-in", h.userSignIn)
-			authenticating.POST("/refresh", h.refreshToken)
+			auth.POST("/send-code", h.sendCodeEmail)
+			auth.POST("/sign-in", h.userSignIn)
+			auth.POST("/refresh", h.refreshToken)
 		}
 
-		authenticated := users.Group("/").Use(userIdentity(h.tokenManager))
+		account := users.Group("/").Use(userIdentity(h.tokenManager))
 		{
-			authenticated.GET("/", h.getUserById)
-			authenticated.POST("/update", h.updateUser)
+			account.GET("/", h.getUserById)
+			account.POST("/update", h.updateUser)
+			account.GET("/delete", h.deleteUser)
 		}
 	}
 }
@@ -66,10 +69,10 @@ type userSignInRequest struct {
 }
 
 type tokenResponse struct {
-	RefreshToken          string `json:"refresh_token"`
-	RefreshTokenExpiresAt int64  `json:"refresh_token_expites_at"`
-	AccessToken           string `json:"access_token"`
-	AccessTokenExpiresAt  int64  `json:"access_token_expires_at"`
+	RefreshToken          string    `json:"refresh_token"`
+	RefreshTokenExpiresAt time.Time `json:"refresh_token_expites_at"`
+	AccessToken           string    `json:"access_token"`
+	AccessTokenExpiresAt  time.Time `json:"access_token_expires_at"`
 }
 
 //	@Summary		User SignIn
@@ -117,8 +120,8 @@ type refreshTokenRequest struct {
 }
 
 type refreshTokenResponse struct {
-	AccessToken          string `json:"access_token"`
-	AccessTokenExpiresAt int64  `json:"access_token_expires_at"`
+	AccessToken          string    `json:"access_token"`
+	AccessTokenExpiresAt time.Time `json:"access_token_expires_at"`
 }
 
 //	@Summary		User Refresh Token
@@ -190,10 +193,10 @@ func (h *Handler) getUserById(c *gin.Context) {
 		return
 	}
 
-	user, err := h.services.Users.Get(c, userPayload.UserID)
+	user, err := h.services.Users.GetById(c, userPayload.UserID)
 	if err != nil {
-		if errors.Is(err, domain.ErrUserNotFound) {
-			newResponse(c, http.StatusNotFound, err.Error())
+		if errors.Is(err, sql.ErrNoRows) {
+			newResponse(c, http.StatusNotFound, domain.ErrUserNotFound.Error())
 			return
 		}
 		newResponse(c, http.StatusInternalServerError, err.Error())
@@ -230,6 +233,37 @@ func (h *Handler) updateUser(c *gin.Context) {
 	}
 
 	if err = h.services.Users.Update(c, userPayload.UserID, inp); err != nil {
+		newResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+//	@Summary		Delete User
+//  @Security		UsersAuth
+//	@Tags			account
+//	@Description	delete user account
+//	@ModuleID		deleteUser
+//	@Accept			json
+//	@Produce		json
+//	@Success		201		{string}	string			"ok"
+//	@Failure		400,404	{object}	response
+//	@Failure		500		{object}	response
+//	@Failure		default	{object}	response
+//	@Router			/user/delete [get]
+func (h *Handler) deleteUser(c *gin.Context) {
+	userPayload, err := getUserPaylaod(c)
+	if err != nil {
+		newResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if err = h.services.Users.Delete(c, userPayload.UserID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			newResponse(c, http.StatusNotFound, domain.ErrUserNotFound.Error())
+			return
+		}
 		newResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}

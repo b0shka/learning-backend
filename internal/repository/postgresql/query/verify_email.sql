@@ -12,6 +12,10 @@ INSERT INTO verify_emails (
 SELECT * FROM verify_emails
 WHERE email = $1 AND secret_code = $2 LIMIT 1;
 
--- name: DeleteVerifyEmail :exec
+-- name: DeleteVerifyEmailById :exec
 DELETE FROM verify_emails
 WHERE id = $1;
+
+-- name: DeleteVerifyEmailByEmail :exec
+DELETE FROM verify_emails
+WHERE email = $1;

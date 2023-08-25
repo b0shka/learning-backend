@@ -242,6 +242,58 @@ const docTemplate = `{
                 }
             }
         },
+        "/user/delete": {
+            "get": {
+                "security": [
+                    {
+                        "UsersAuth": []
+                    }
+                ],
+                "description": "delete user account",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "account"
+                ],
+                "summary": "Delete User",
+                "responses": {
+                    "201": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/http.response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/http.response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/http.response"
+                        }
+                    },
+                    "default": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/http.response"
+                        }
+                    }
+                }
+            }
+        },
         "/user/update": {
             "post": {
                 "security": [
@@ -312,7 +364,7 @@ const docTemplate = `{
             "required": [
                 "created_at",
                 "email",
-                "name"
+                "username"
             ],
             "properties": {
                 "created_at": {
@@ -324,10 +376,10 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "name": {
+                "photo": {
                     "type": "string"
                 },
-                "photo": {
+                "username": {
                     "type": "string"
                 }
             }
@@ -335,13 +387,13 @@ const docTemplate = `{
         "domain.UserUpdate": {
             "type": "object",
             "required": [
-                "name"
+                "username"
             ],
             "properties": {
-                "name": {
+                "photo": {
                     "type": "string"
                 },
-                "photo": {
+                "username": {
                     "type": "string"
                 }
             }
@@ -364,7 +416,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "access_token_expires_at": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
@@ -383,13 +435,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "access_token_expires_at": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "refresh_token": {
                     "type": "string"
                 },
                 "refresh_token_expites_at": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },

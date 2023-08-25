@@ -7,8 +7,8 @@ import (
 	"github.com/aead/chacha20poly1305"
 	"github.com/b0shka/backend/internal/domain"
 	"github.com/b0shka/backend/pkg/utils"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestAuthPaseto_NewPasetoManager(t *testing.T) {
@@ -52,7 +52,9 @@ func TestAuthPaseto_CreateTokenAndVerify(t *testing.T) {
 	manager, err := NewPasetoManager(utils.RandomString(chacha20poly1305.KeySize))
 	require.NoError(t, err)
 
-	userId := primitive.NewObjectID()
+	userId, err := uuid.NewRandom()
+	require.NoError(t, err)
+
 	duration := time.Minute
 	testPayload, err := NewPayload(userId, duration)
 	require.NoError(t, err)
@@ -116,8 +118,8 @@ func TestAuthPaseto_CreateTokenAndVerify(t *testing.T) {
 				require.NotEmpty(t, payload)
 				require.NotZero(t, payload.ID)
 				require.Equal(t, testCase.payload.UserID, payload.UserID)
-				require.Equal(t, testCase.payload.IssuedAt, payload.IssuedAt)
-				require.Equal(t, testCase.payload.ExpiresAt, payload.ExpiresAt)
+				require.WithinDuration(t, testCase.payload.IssuedAt, payload.IssuedAt, time.Second)
+				require.WithinDuration(t, testCase.payload.ExpiresAt, payload.ExpiresAt, time.Second)
 			}
 		})
 	}

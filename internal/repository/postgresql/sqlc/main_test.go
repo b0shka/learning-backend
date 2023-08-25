@@ -20,7 +20,7 @@ func TestMain(m *testing.M) {
 	// }
 
 	// databseUrl := fmt.Sprintf(
-	// 	"postgres://%s:%s@%s:%s/%s?sslmode=disable",
+	// 	"postgresql://%s:%s@%s:%s/%s?sslmode=disable",
 	// 	cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.DBName,
 	// )
 

@@ -8,23 +8,23 @@ definitions:
         type: string
       id:
         type: string
-      name:
-        type: string
       photo:
+        type: string
+      username:
         type: string
     required:
     - created_at
     - email
-    - name
+    - username
     type: object
   domain.UserUpdate:
     properties:
-      name:
-        type: string
       photo:
         type: string
+      username:
+        type: string
     required:
-    - name
+    - username
     type: object
   http.refreshTokenRequest:
     properties:
@@ -38,7 +38,7 @@ definitions:
       access_token:
         type: string
       access_token_expires_at:
-        type: integer
+        type: string
     type: object
   http.response:
     properties:
@@ -50,11 +50,11 @@ definitions:
       access_token:
         type: string
       access_token_expires_at:
-        type: integer
+        type: string
       refresh_token:
         type: string
       refresh_token_expites_at:
-        type: integer
+        type: string
     type: object
   http.userSendCodeRequest:
     properties:
@@ -228,6 +228,39 @@ paths:
       summary: User SignIn
       tags:
       - auth
+  /user/delete:
+    get:
+      consumes:
+      - application/json
+      description: delete user account
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.response'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/http.response'
+      security:
+      - UsersAuth: []
+      summary: Delete User
+      tags:
+      - account
   /user/update:
     post:
       consumes:

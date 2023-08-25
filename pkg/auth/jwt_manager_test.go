@@ -7,8 +7,8 @@ import (
 	"github.com/b0shka/backend/internal/domain"
 	"github.com/b0shka/backend/pkg/utils"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestAuthJWT_NewJWTManager(t *testing.T) {
@@ -52,7 +52,9 @@ func TestAuthJWT_CreateTokenAndVerify(t *testing.T) {
 	manager, err := NewJWTManager(utils.RandomString(32))
 	require.NoError(t, err)
 
-	userId := primitive.NewObjectID()
+	userId, err := uuid.NewRandom()
+	require.NoError(t, err)
+
 	duration := time.Minute
 	testPayload, err := NewPayload(userId, duration)
 	require.NoError(t, err)
@@ -128,8 +130,8 @@ func TestAuthJWT_CreateTokenAndVerify(t *testing.T) {
 
 				require.NotZero(t, payload.ID)
 				require.Equal(t, testCase.payload.UserID, payload.UserID)
-				require.Equal(t, testCase.payload.IssuedAt, payload.IssuedAt)
-				require.Equal(t, testCase.payload.ExpiresAt, payload.ExpiresAt)
+				require.WithinDuration(t, testCase.payload.IssuedAt, payload.IssuedAt, time.Second)
+				require.WithinDuration(t, testCase.payload.ExpiresAt, payload.ExpiresAt, time.Second)
 			}
 		})
 	}

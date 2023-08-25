@@ -47,13 +47,23 @@ func (q *Queries) CreateVerifyEmail(ctx context.Context, arg CreateVerifyEmailPa
 	return i, err
 }
 
-const deleteVerifyEmail = `-- name: DeleteVerifyEmail :exec
+const deleteVerifyEmailByEmail = `-- name: DeleteVerifyEmailByEmail :exec
+DELETE FROM verify_emails
+WHERE email = $1
+`
+
+func (q *Queries) DeleteVerifyEmailByEmail(ctx context.Context, email string) error {
+	_, err := q.db.ExecContext(ctx, deleteVerifyEmailByEmail, email)
+	return err
+}
+
+const deleteVerifyEmailById = `-- name: DeleteVerifyEmailById :exec
 DELETE FROM verify_emails
 WHERE id = $1
 `
 
-func (q *Queries) DeleteVerifyEmail(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteVerifyEmail, id)
+func (q *Queries) DeleteVerifyEmailById(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteVerifyEmailById, id)
 	return err
 }
 

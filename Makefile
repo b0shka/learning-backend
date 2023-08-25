@@ -27,7 +27,8 @@ swag:
 	${HOME}/go/bin/swag init -g internal/app/app.go
 
 mock:
-	mockgen -source=internal/repository/repository.go -destination=internal/repository/mocks/mock_repository.go
+	mockgen -source=internal/repository/mongodb/repository.go -destination=internal/repository/mongodb/mocks/mock_repository.go
+	mockgen -source=internal/repository/postgresql/sqlc/querier.go -destination=internal/repository/postgresql/mocks/mock_repository.go
 	mockgen -source=internal/service/service.go -destination=internal/service/mocks/mock_service.go
 
 docker-build:
