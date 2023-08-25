@@ -70,16 +70,15 @@ func Run(configPath string) {
 	// repos := repository.NewRepositories(db)
 
 	postgresSource := fmt.Sprintf(
-		"postgresql://%s:%s@%s:%s/%s?sslmode=disable",
-		cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.DBName,
+		"host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
+		cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.User, cfg.Postgres.DBName, cfg.Postgres.Password,
 	)
-	connPostgres, err := sql.Open("postgres", postgresSource)
+	db, err := sql.Open("postgres", postgresSource)
 	if err != nil {
 		logger.Error(err)
 	}
 
-	repos := repository.NewStore(connPostgres)
-
+	repos := repository.NewStore(db)
 	services := service.NewServices(service.Deps{
 		Repos:        repos,
 		Hasher:       hasher,
@@ -117,7 +116,7 @@ func Run(configPath string) {
 	// 	logger.Error(err.Error())
 	// }
 
-	if err := connPostgres.Close(); err != nil {
+	if err := db.Close(); err != nil {
 		logger.Error(err.Error())
 	}
 

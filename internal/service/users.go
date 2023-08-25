@@ -21,7 +21,6 @@ import (
 )
 
 type UsersService struct {
-	// repo    repository.Users
 	repo         *repository.Store
 	hasher       hash.Hasher
 	tokenManager auth.Manager
@@ -31,7 +30,6 @@ type UsersService struct {
 }
 
 func NewUsersService(
-	// repo repository.Users,
 	repo *repository.Store,
 	hasher hash.Hasher,
 	tokenManager auth.Manager,

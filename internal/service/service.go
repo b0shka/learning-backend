@@ -45,7 +45,6 @@ type Services struct {
 }
 
 type Deps struct {
-	// Repos    *repository.Repositories
 	Repos        *repository.Store
 	Hasher       hash.Hasher
 	TokenManager auth.Manager
@@ -57,7 +56,6 @@ type Deps struct {
 func NewServices(deps Deps) *Services {
 	return &Services{
 		Users: NewUsersService(
-			// deps.ReposMongo.Users,
 			deps.Repos,
 			deps.Hasher,
 			deps.TokenManager,
