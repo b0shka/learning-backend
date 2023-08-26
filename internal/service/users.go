@@ -61,7 +61,7 @@ func (s *UsersService) SendCodeEmail(ctx context.Context, email string) error {
 		return err
 	}
 
-	err = contentHtml.Execute(&content, UserSignInInput{
+	err = contentHtml.Execute(&content, domain.UserSignIn{
 		Email:      email,
 		SecretCode: secretCode,
 	})
@@ -113,11 +113,11 @@ func (s *UsersService) SendCodeEmail(ctx context.Context, email string) error {
 	return err
 }
 
-func (s *UsersService) SignIn(ctx *gin.Context, inp UserSignInInput) (Tokens, error) {
+func (s *UsersService) SignIn(ctx *gin.Context, inp domain.UserSignIn) (repository.User, Tokens, error) {
 	secretCodeStr := strconv.Itoa(int(inp.SecretCode))
 	secretCodeHash, err := s.hasher.HashCode(secretCodeStr)
 	if err != nil {
-		return Tokens{}, err
+		return repository.User{}, Tokens{}, err
 	}
 
 	arg := repository.GetVerifyEmailParams{
@@ -128,26 +128,27 @@ func (s *UsersService) SignIn(ctx *gin.Context, inp UserSignInInput) (Tokens, er
 	verifyEmail, err := s.repo.GetVerifyEmail(ctx, arg)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return Tokens{}, domain.ErrSecretCodeInvalid
+			return repository.User{}, Tokens{}, domain.ErrSecretCodeInvalid
 		}
-		return Tokens{}, err
+		return repository.User{}, Tokens{}, err
 	}
 
 	if time.Now().After(verifyEmail.ExpiresAt) {
-		return Tokens{}, domain.ErrSecretCodeExpired
+		return repository.User{}, Tokens{}, domain.ErrSecretCodeExpired
 	}
 
 	err = s.repo.DeleteVerifyEmailById(ctx, verifyEmail.ID)
 	if err != nil {
-		return Tokens{}, err
+		return repository.User{}, Tokens{}, err
 	}
 
 	user, err := s.repo.GetUserByEmail(ctx, inp.Email)
 	if err != nil {
-		return Tokens{}, err
+		return repository.User{}, Tokens{}, err
 	}
 
-	return s.createSession(ctx, user.ID)
+	tokens, err := s.createSession(ctx, user.ID)
+	return user, tokens, err
 }
 
 func (s *UsersService) createSession(ctx *gin.Context, id uuid.UUID) (Tokens, error) {

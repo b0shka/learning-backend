@@ -83,9 +83,10 @@ func TestUsersService_SignInErrExpiredCode(t *testing.T) {
 
 	userRepo.EXPECT().GetVerifyEmail(ctx, gomock.Any())
 
-	res, err := userService.SignIn(ctx, service.UserSignInInput{})
+	user, res, err := userService.SignIn(ctx, domain.UserSignIn{})
 	require.True(t, errors.Is(err, domain.ErrSecretCodeExpired))
 	require.IsType(t, service.Tokens{}, res)
+	require.IsType(t, repository.User{}, user)
 }
 
 func TestUsersService_SignInErrCodeInvalid(t *testing.T) {
@@ -98,10 +99,10 @@ func TestUsersService_SignInErrCodeInvalid(t *testing.T) {
 	userRepo.EXPECT().GetVerifyEmail(ctx, gomock.Any()).
 		Return(repository.VerifyEmail{}, sql.ErrNoRows)
 
-	res, err := userService.SignIn(ctx, service.UserSignInInput{})
-
+	user, res, err := userService.SignIn(ctx, domain.UserSignIn{})
 	require.True(t, errors.Is(err, domain.ErrSecretCodeInvalid))
 	require.IsType(t, service.Tokens{}, res)
+	require.IsType(t, repository.User{}, user)
 }
 
 func TestUsersService_SignInErrGetEmail(t *testing.T) {
@@ -114,10 +115,10 @@ func TestUsersService_SignInErrGetEmail(t *testing.T) {
 	userRepo.EXPECT().GetVerifyEmail(ctx, gomock.Any()).
 		Return(repository.VerifyEmail{}, errInternalServErr)
 
-	res, err := userService.SignIn(ctx, service.UserSignInInput{})
-
+	user, res, err := userService.SignIn(ctx, domain.UserSignIn{})
 	require.True(t, errors.Is(err, errInternalServErr))
 	require.IsType(t, service.Tokens{}, res)
+	require.IsType(t, repository.User{}, user)
 }
 
 func TestUsersService_SignInErrDeleteEmail(t *testing.T) {
@@ -136,9 +137,10 @@ func TestUsersService_SignInErrDeleteEmail(t *testing.T) {
 		)
 	userRepo.EXPECT().DeleteVerifyEmailById(ctx, gomock.Any()).Return(errInternalServErr)
 
-	res, err := userService.SignIn(ctx, service.UserSignInInput{})
+	user, res, err := userService.SignIn(ctx, domain.UserSignIn{})
 	require.True(t, errors.Is(err, errInternalServErr))
 	require.IsType(t, service.Tokens{}, res)
+	require.IsType(t, repository.User{}, user)
 }
 
 func TestUsersService_SignInErrGetUser(t *testing.T) {
@@ -159,9 +161,10 @@ func TestUsersService_SignInErrGetUser(t *testing.T) {
 	userRepo.EXPECT().GetUserByEmail(ctx, gomock.Any()).
 		Return(repository.User{}, errInternalServErr)
 
-	res, err := userService.SignIn(ctx, service.UserSignInInput{})
+	user, res, err := userService.SignIn(ctx, domain.UserSignIn{})
 	require.True(t, errors.Is(err, errInternalServErr))
 	require.IsType(t, service.Tokens{}, res)
+	require.IsType(t, repository.User{}, user)
 }
 
 // func TestUsersService_SignInErrCreateSession(t *testing.T) {

@@ -98,12 +98,13 @@ func (mr *MockUsersMockRecorder) SendCodeEmail(ctx, email interface{}) *gomock.C
 }
 
 // SignIn mocks base method.
-func (m *MockUsers) SignIn(ctx *gin.Context, inp service.UserSignInInput) (service.Tokens, error) {
+func (m *MockUsers) SignIn(ctx *gin.Context, inp domain.UserSignIn) (repository.User, service.Tokens, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SignIn", ctx, inp)
-	ret0, _ := ret[0].(service.Tokens)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(repository.User)
+	ret1, _ := ret[1].(service.Tokens)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // SignIn indicates an expected call of SignIn.

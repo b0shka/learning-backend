@@ -34,13 +34,11 @@ lint:
 	golangci-lint run
 
 swag:
-	${HOME}/go/bin/swag init -g internal/app/app.go
+	swag init -g internal/app/app.go
 
 mock:
 	mockgen -source=internal/repository/mongodb/repository.go -destination=internal/repository/mongodb/mocks/mock_repository.go
-
 	mockgen -destination=internal/repository/postgresql/mocks/mock_repository.go github.com/b0shka/backend/internal/repository/postgresql/sqlc Store
-
 	mockgen -source=internal/service/service.go -destination=internal/service/mocks/mock_service.go
 
 network:

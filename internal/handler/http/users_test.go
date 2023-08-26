@@ -26,11 +26,11 @@ import (
 
 var errInternalServErr = errors.New("test: internal server error")
 
-func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, user repository.User) {
+func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, user domain.User) {
 	data, err := io.ReadAll(body)
 	require.NoError(t, err)
 
-	var gotUser repository.User
+	var gotUser domain.User
 	err = json.Unmarshal(data, &gotUser)
 
 	require.NoError(t, err)
@@ -167,7 +167,7 @@ func TestHandler_sendCodeEmail(t *testing.T) {
 }
 
 func TestHandler_userSignIn(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockUsers, input service.UserSignInInput)
+	type mockBehavior func(s *mock_service.MockUsers, input domain.UserSignIn)
 
 	tokens := service.Tokens{
 		RefreshToken:          utils.RandomString(10),
@@ -176,10 +176,18 @@ func TestHandler_userSignIn(t *testing.T) {
 		AccessTokenExpiresAt:  time.Now().Add(time.Minute * 15),
 	}
 
+	user := repository.User{
+		ID:        uuid.New(),
+		Email:     utils.RandomEmail(),
+		Username:  utils.RandomString(10),
+		Photo:     fmt.Sprintf("https://%s", utils.RandomString(7)),
+		CreatedAt: time.Now(),
+	}
+
 	tests := []struct {
 		name          string
 		body          gin.H
-		userInput     service.UserSignInInput
+		userInput     domain.UserSignIn
 		mockBehavior  mockBehavior
 		checkResponse func(recoder *httptest.ResponseRecorder)
 	}{
@@ -189,14 +197,14 @@ func TestHandler_userSignIn(t *testing.T) {
 				"email":       "email@ya.ru",
 				"secret_code": 123456,
 			},
-			userInput: service.UserSignInInput{
+			userInput: domain.UserSignIn{
 				Email:      "email@ya.ru",
 				SecretCode: 123456,
 			},
-			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {
+			mockBehavior: func(s *mock_service.MockUsers, input domain.UserSignIn) {
 				s.EXPECT().
 					SignIn(gomock.Any(), input).
-					Return(tokens, nil)
+					Return(user, tokens, nil)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
@@ -209,10 +217,10 @@ func TestHandler_userSignIn(t *testing.T) {
 				"email":       "email@ya.ru",
 				"secret_code": 123456,
 			},
-			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {
+			mockBehavior: func(s *mock_service.MockUsers, input domain.UserSignIn) {
 				s.EXPECT().
 					SignIn(gomock.Any(), gomock.Any()).
-					Return(service.Tokens{}, errInternalServErr)
+					Return(repository.User{}, service.Tokens{}, errInternalServErr)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -229,10 +237,10 @@ func TestHandler_userSignIn(t *testing.T) {
 				"email":       "email@ya.ru",
 				"secret_code": 123456,
 			},
-			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {
+			mockBehavior: func(s *mock_service.MockUsers, input domain.UserSignIn) {
 				s.EXPECT().
 					SignIn(gomock.Any(), gomock.Any()).
-					Return(service.Tokens{}, domain.ErrSecretCodeInvalid)
+					Return(repository.User{}, service.Tokens{}, domain.ErrSecretCodeInvalid)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusUnauthorized, recorder.Code)
@@ -249,10 +257,10 @@ func TestHandler_userSignIn(t *testing.T) {
 				"email":       "email@ya.ru",
 				"secret_code": 123456,
 			},
-			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {
+			mockBehavior: func(s *mock_service.MockUsers, input domain.UserSignIn) {
 				s.EXPECT().
 					SignIn(gomock.Any(), gomock.Any()).
-					Return(service.Tokens{}, domain.ErrSecretCodeExpired)
+					Return(repository.User{}, service.Tokens{}, domain.ErrSecretCodeExpired)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusUnauthorized, recorder.Code)
@@ -269,7 +277,7 @@ func TestHandler_userSignIn(t *testing.T) {
 				"email":       "",
 				"secret_code": nil,
 			},
-			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {},
+			mockBehavior: func(s *mock_service.MockUsers, input domain.UserSignIn) {},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
 				require.Equal(
@@ -285,7 +293,7 @@ func TestHandler_userSignIn(t *testing.T) {
 				"email":       "email@ya.ru",
 				"secret_code": nil,
 			},
-			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {},
+			mockBehavior: func(s *mock_service.MockUsers, input domain.UserSignIn) {},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
 				require.Equal(
@@ -301,7 +309,7 @@ func TestHandler_userSignIn(t *testing.T) {
 				"email":       "",
 				"secret_code": 123456,
 			},
-			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {},
+			mockBehavior: func(s *mock_service.MockUsers, input domain.UserSignIn) {},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
 				require.Equal(
@@ -317,7 +325,7 @@ func TestHandler_userSignIn(t *testing.T) {
 				"email":       "email@ya.ru",
 				"secret_code": 12345,
 			},
-			mockBehavior: func(s *mock_service.MockUsers, input service.UserSignInInput) {},
+			mockBehavior: func(s *mock_service.MockUsers, input domain.UserSignIn) {},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
 				require.Equal(
@@ -602,7 +610,13 @@ func TestHandler_getUserById(t *testing.T) {
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
-				requireBodyMatchUser(t, recorder.Body, user)
+				requireBodyMatchUser(t, recorder.Body, domain.User{
+					ID:        user.ID,
+					Email:     user.Email,
+					Username:  user.Username,
+					Photo:     user.Photo,
+					CreatedAt: user.CreatedAt,
+				})
 			},
 		},
 		{

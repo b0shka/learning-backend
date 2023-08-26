@@ -14,11 +14,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type UserSignInInput struct {
-	Email      string
-	SecretCode int32
-}
-
 type Tokens struct {
 	RefreshToken          string    `json:"refresh_token"`
 	RefreshTokenExpiresAt time.Time `json:"refresh_token_expires_at"`
@@ -33,7 +28,7 @@ type RefreshToken struct {
 
 type Users interface {
 	SendCodeEmail(ctx context.Context, email string) error
-	SignIn(ctx *gin.Context, inp UserSignInInput) (Tokens, error)
+	SignIn(ctx *gin.Context, inp domain.UserSignIn) (repository.User, Tokens, error)
 	RefreshToken(ctx context.Context, refreshToken string) (RefreshToken, error)
 	GetById(ctx context.Context, id uuid.UUID) (repository.User, error)
 	Update(ctx context.Context, id uuid.UUID, user domain.UserUpdate) error

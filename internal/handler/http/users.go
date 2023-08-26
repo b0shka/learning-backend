@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/b0shka/backend/internal/domain"
-	"github.com/b0shka/backend/internal/service"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -63,16 +61,12 @@ func (h *Handler) sendCodeEmail(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-type userSignInRequest struct {
-	Email      string `json:"email" binding:"required,email"`
-	SecretCode int32  `json:"secret_code" bson:"secret_code" binding:"required,min=100000"`
-}
-
-type tokenResponse struct {
-	RefreshToken          string    `json:"refresh_token"`
-	RefreshTokenExpiresAt time.Time `json:"refresh_token_expites_at"`
-	AccessToken           string    `json:"access_token"`
-	AccessTokenExpiresAt  time.Time `json:"access_token_expires_at"`
+type userSignInResponse struct {
+	RefreshToken          string      `json:"refresh_token"`
+	RefreshTokenExpiresAt time.Time   `json:"refresh_token_expites_at"`
+	AccessToken           string      `json:"access_token"`
+	AccessTokenExpiresAt  time.Time   `json:"access_token_expires_at"`
+	User                  domain.User `json:"user"`
 }
 
 //	@Summary		User SignIn
@@ -81,23 +75,20 @@ type tokenResponse struct {
 //	@ModuleID		userSignIn
 //	@Accept			json
 //	@Produce		json
-//	@Param			input	body		userSignInRequest	true	"sign in info"
+//	@Param			input	body		domain.UserSignIn	true	"sign in info"
 //	@Success		201		{object}	tokenResponse
 //	@Failure		400,404	{object}	response
 //	@Failure		500		{object}	response
 //	@Failure		default	{object}	response
 //	@Router			/user/auth/sign-in [post]
 func (h *Handler) userSignIn(c *gin.Context) {
-	var inp userSignInRequest
+	var inp domain.UserSignIn
 	if err := c.BindJSON(&inp); err != nil {
 		newResponse(c, http.StatusBadRequest, domain.ErrInvalidInput.Error())
 		return
 	}
 
-	res, err := h.services.Users.SignIn(c, service.UserSignInInput{
-		Email:      inp.Email,
-		SecretCode: inp.SecretCode,
-	})
+	user, res, err := h.services.Users.SignIn(c, inp)
 	if err != nil {
 		if errors.Is(err, domain.ErrSecretCodeInvalid) || errors.Is(err, domain.ErrSecretCodeExpired) {
 			newResponse(c, http.StatusUnauthorized, err.Error())
@@ -107,11 +98,18 @@ func (h *Handler) userSignIn(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, tokenResponse{
+	c.JSON(http.StatusOK, userSignInResponse{
 		RefreshToken:          res.RefreshToken,
 		RefreshTokenExpiresAt: res.RefreshTokenExpiresAt,
 		AccessToken:           res.AccessToken,
 		AccessTokenExpiresAt:  res.AccessTokenExpiresAt,
+		User: domain.User{
+			ID:        user.ID,
+			Email:     user.Email,
+			Username:  user.Username,
+			Photo:     user.Photo,
+			CreatedAt: user.CreatedAt,
+		},
 	})
 }
 
@@ -203,7 +201,13 @@ func (h *Handler) getUserById(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	c.JSON(http.StatusOK, domain.User{
+		ID:        user.ID,
+		Email:     user.Email,
+		Username:  user.Username,
+		Photo:     user.Photo,
+		CreatedAt: user.CreatedAt,
+	})
 }
 
 //	@Summary		Update User
@@ -213,7 +217,7 @@ func (h *Handler) getUserById(c *gin.Context) {
 //	@ModuleID		updateUser
 //	@Accept			json
 //	@Produce		json
-//	@Param			input	body		domain.UserUpdate	true	"user info"
+//	@Param			input	body		domain.UserUpdate	true	"user update info"
 //	@Success		201		{string}	string			"ok"
 //	@Failure		400,404	{object}	response
 //	@Failure		500		{object}	response

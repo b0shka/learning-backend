@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package pb;
+
+import "user.proto";
+
+option go_package = "github.com/b0shka/backend/internal/handler/grpc/pb";
+
+message SignInUserRequest {
+    string email = 1;
+    int32 code = 2;
+}
+
+message SignInUserResponse {
+    User user;
+}
