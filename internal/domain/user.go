@@ -1,16 +1,25 @@
 package domain
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type User struct {
-	ID        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	Email     string             `json:"email" bson:"email" binding:"required"`
-	Photo     string             `json:"photo" bson:"photo"`
-	Name      string             `json:"name" bson:"name" binding:"required"`
-	CreatedAt int64              `json:"created_at" bson:"created_at" binding:"required"`
+	ID        uuid.UUID `json:"id" binding:"required"`
+	Email     string    `json:"email" binding:"required"`
+	Username  string    `json:"username" binding:"required"`
+	Photo     string    `json:"photo"`
+	CreatedAt time.Time `json:"created_at" binding:"required"`
+}
+
+type UserSignIn struct {
+	Email      string `json:"email" binding:"required,email"`
+	SecretCode int32  `json:"secret_code" binding:"required,min=100000"`
 }
 
 type UserUpdate struct {
-	Photo string `json:"photo" bson:"photo"`
-	Name  string `json:"name" bson:"name" binding:"required"`
+	Username string `json:"username" binding:"required"`
+	Photo    string `json:"photo"`
 }

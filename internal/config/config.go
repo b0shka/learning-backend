@@ -12,16 +12,25 @@ import (
 
 type (
 	Config struct {
-		Mongo MongoConfig `mapstructure:"port"`
-		HTTP  HTTPConfig  `mapstructure:"http"`
-		Auth  AuthConfig  `mapstructure:"auth"`
-		SMTP  SMTPConfig  `mapstructure:"smtp"`
-		Email EmailConfig `mapstructure:"email"`
+		Mongo    MongoConfig
+		Postgres PostgresConfig
+		HTTP     HTTPConfig  `mapstructure:"http"`
+		Auth     AuthConfig  `mapstructure:"auth"`
+		SMTP     SMTPConfig  `mapstructure:"smtp"`
+		Email    EmailConfig `mapstructure:"email"`
 	}
 
 	MongoConfig struct {
 		URI    string `envconfig:"MONGO_URI"`
 		DBName string `envconfig:"MONGO_DB_NAME"`
+	}
+
+	PostgresConfig struct {
+		User     string `envconfig:"POSTGRESQL_USER"`
+		Password string `envconfig:"POSTGRESQL_PASSWORD"`
+		Host     string `envconfig:"POSTGRESQL_HOST"`
+		Port     string `envconfig:"POSTGRESQL_PORT"`
+		DBName   string `envconfig:"POSTGRESQL_DB_NAME"`
 	}
 
 	EmailConfig struct {
@@ -34,21 +43,24 @@ type (
 
 	EmailTemplates struct {
 		Verify string `mapstructure:"verify_email"`
+		SignIn string `mapstructure:"signin_account"`
 	}
 
 	EmailSubjects struct {
 		Verify string `mapstructure:"verify_email"`
+		SignIn string `mapstructure:"signin_account"`
 	}
 
 	AuthConfig struct {
-		JWT                JWTConfig `mapstructure:"jwt"`
-		SercetCodeLifetime int       `mapstructure:"sercetCodeLifetime"`
-		SecretKey          string    `envconfig:"SECRET_KEY"`
-		CodeSalt           string    `envconfig:"CODE_SALT"`
+		JWT                JWTConfig     `mapstructure:"jwt"`
+		SercetCodeLifetime time.Duration `mapstructure:"sercetCodeLifetime"`
+		SecretKey          string        `envconfig:"SECRET_KEY"`
+		CodeSalt           string        `envconfig:"CODE_SALT"`
 	}
 
 	JWTConfig struct {
-		AccessTokenTTL time.Duration `mapstructure:"accessTokenTTL"`
+		AccessTokenTTL  time.Duration `mapstructure:"accessTokenTTL"`
+		RefreshTokenTTL time.Duration `mapstructure:"refreshTokenTTL"`
 	}
 
 	HTTPConfig struct {
@@ -82,10 +94,6 @@ func InitConfig(configPath string) (*Config, error) {
 			return nil, err
 		}
 	}
-
-	// if err := godotenv.Load(); err != nil {
-	// 	return nil, err
-	// }
 
 	if err := envconfig.Process("", &cfg); err != nil {
 		log.Fatal(err.Error())

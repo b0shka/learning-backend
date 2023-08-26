@@ -9,9 +9,11 @@ import (
 	reflect "reflect"
 
 	domain "github.com/b0shka/backend/internal/domain"
+	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
 	service "github.com/b0shka/backend/internal/service"
+	gin "github.com/gin-gonic/gin"
 	gomock "github.com/golang/mock/gomock"
-	primitive "go.mongodb.org/mongo-driver/bson/primitive"
+	uuid "github.com/google/uuid"
 )
 
 // MockUsers is a mock of Users interface.
@@ -37,19 +39,48 @@ func (m *MockUsers) EXPECT() *MockUsersMockRecorder {
 	return m.recorder
 }
 
-// Get mocks base method.
-func (m *MockUsers) Get(ctx context.Context, identifier interface{}) (domain.User, error) {
+// Delete mocks base method.
+func (m *MockUsers) Delete(ctx context.Context, id uuid.UUID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", ctx, identifier)
-	ret0, _ := ret[0].(domain.User)
+	ret := m.ctrl.Call(m, "Delete", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Delete indicates an expected call of Delete.
+func (mr *MockUsersMockRecorder) Delete(ctx, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockUsers)(nil).Delete), ctx, id)
+}
+
+// GetById mocks base method.
+func (m *MockUsers) GetById(ctx context.Context, id uuid.UUID) (repository.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetById", ctx, id)
+	ret0, _ := ret[0].(repository.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Get indicates an expected call of Get.
-func (mr *MockUsersMockRecorder) Get(ctx, identifier interface{}) *gomock.Call {
+// GetById indicates an expected call of GetById.
+func (mr *MockUsersMockRecorder) GetById(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockUsers)(nil).Get), ctx, identifier)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetById", reflect.TypeOf((*MockUsers)(nil).GetById), ctx, id)
+}
+
+// RefreshToken mocks base method.
+func (m *MockUsers) RefreshToken(ctx context.Context, refreshToken string) (service.RefreshToken, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshToken", ctx, refreshToken)
+	ret0, _ := ret[0].(service.RefreshToken)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RefreshToken indicates an expected call of RefreshToken.
+func (mr *MockUsersMockRecorder) RefreshToken(ctx, refreshToken interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshToken", reflect.TypeOf((*MockUsers)(nil).RefreshToken), ctx, refreshToken)
 }
 
 // SendCodeEmail mocks base method.
@@ -67,12 +98,13 @@ func (mr *MockUsersMockRecorder) SendCodeEmail(ctx, email interface{}) *gomock.C
 }
 
 // SignIn mocks base method.
-func (m *MockUsers) SignIn(ctx context.Context, inp service.UserSignInInput) (service.Tokens, error) {
+func (m *MockUsers) SignIn(ctx *gin.Context, inp domain.UserSignIn) (repository.User, service.Tokens, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SignIn", ctx, inp)
-	ret0, _ := ret[0].(service.Tokens)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(repository.User)
+	ret1, _ := ret[1].(service.Tokens)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // SignIn indicates an expected call of SignIn.
@@ -82,7 +114,7 @@ func (mr *MockUsersMockRecorder) SignIn(ctx, inp interface{}) *gomock.Call {
 }
 
 // Update mocks base method.
-func (m *MockUsers) Update(ctx context.Context, id primitive.ObjectID, user domain.UserUpdate) error {
+func (m *MockUsers) Update(ctx context.Context, id uuid.UUID, user domain.UserUpdate) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", ctx, id, user)
 	ret0, _ := ret[0].(error)

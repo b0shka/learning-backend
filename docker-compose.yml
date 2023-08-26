@@ -1,21 +1,30 @@
 version: '3.9'
 
 services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=qwerty
+      - POSTGRES_DB=service
+
   api:
     image: b0shka/backend:latest
     container_name: backend
-    restart: always
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - 8080:8080
-    environment:
-      - MONGO_URI
-      - MONGO_DB_NAME
-      - EMAIL_SERVICE_NAME
-      - EMAIL_SERVICE_ADDRESS
-      - EMAIL_SERVICE_PASSWORD
-      - SECRET_KEY
-      - CODE_SALT
-      - HTTP_HOST
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+    entrypoint: [
+      "/app/wait-for.sh", 
+      "postgres:5432", 
+      "--", 
+      "/app/start.sh"
+    ]
+    command: ["/app/app"]

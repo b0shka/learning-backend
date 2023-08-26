@@ -7,8 +7,8 @@ import (
 	"github.com/b0shka/backend/internal/domain"
 	"github.com/b0shka/backend/pkg/utils"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestAuthJWT_NewJWTManager(t *testing.T) {
@@ -52,18 +52,22 @@ func TestAuthJWT_CreateTokenAndVerify(t *testing.T) {
 	manager, err := NewJWTManager(utils.RandomString(32))
 	require.NoError(t, err)
 
-	userId := primitive.NewObjectID()
+	userId, err := uuid.NewRandom()
+	require.NoError(t, err)
+
 	duration := time.Minute
-	payload, err := NewPayload(userId, duration)
+	testPayload, err := NewPayload(userId, duration)
 	require.NoError(t, err)
 
-	token, err := manager.CreateToken(userId, duration)
+	token, payload, err := manager.CreateToken(userId, duration)
 	require.NoError(t, err)
 	require.NotEmpty(t, token)
+	require.NotEmpty(t, payload)
 
-	tokenExpired, err := manager.CreateToken(userId, -duration)
+	tokenExpired, payload, err := manager.CreateToken(userId, -duration)
 	require.NoError(t, err)
 	require.NotEmpty(t, token)
+	require.NotEmpty(t, payload)
 
 	jwtTokenWithNoneSigning := jwt.NewWithClaims(jwt.SigningMethodNone, payload)
 	tokenWithNoneSigning, err := jwtTokenWithNoneSigning.SignedString(jwt.UnsafeAllowNoneSignatureType)
@@ -78,34 +82,34 @@ func TestAuthJWT_CreateTokenAndVerify(t *testing.T) {
 	}{
 		{
 			name:      "ok",
-			payload:   payload,
+			payload:   testPayload,
 			token:     token,
 			shouldErr: false,
 		},
 		{
 			name:          "invalid token",
-			payload:       payload,
+			payload:       testPayload,
 			token:         "",
 			shouldErr:     true,
 			expectedError: domain.ErrInvalidToken,
 		},
 		{
 			name:          "invalid token",
-			payload:       payload,
+			payload:       testPayload,
 			token:         "token",
 			shouldErr:     true,
 			expectedError: domain.ErrInvalidToken,
 		},
 		{
 			name:          "invalid token",
-			payload:       payload,
+			payload:       testPayload,
 			token:         tokenWithNoneSigning,
 			shouldErr:     true,
 			expectedError: domain.ErrInvalidToken,
 		},
 		{
 			name:          "expired token",
-			payload:       payload,
+			payload:       testPayload,
 			token:         tokenExpired,
 			shouldErr:     true,
 			expectedError: domain.ErrExpiredToken,
@@ -123,10 +127,11 @@ func TestAuthJWT_CreateTokenAndVerify(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.NotEmpty(t, payload)
+
 				require.NotZero(t, payload.ID)
 				require.Equal(t, testCase.payload.UserID, payload.UserID)
 				require.WithinDuration(t, testCase.payload.IssuedAt, payload.IssuedAt, time.Second)
-				require.WithinDuration(t, testCase.payload.ExpiredAt, payload.ExpiredAt, time.Second)
+				require.WithinDuration(t, testCase.payload.ExpiresAt, payload.ExpiresAt, time.Second)
 			}
 		})
 	}

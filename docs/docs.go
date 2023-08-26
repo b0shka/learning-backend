@@ -68,6 +68,64 @@ const docTemplate = `{
                 }
             }
         },
+        "/user/auth/refresh": {
+            "post": {
+                "description": "user refresh token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "User Refresh Token",
+                "parameters": [
+                    {
+                        "description": "refresh info",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/http.refreshTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/http.refreshTokenResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/http.response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/http.response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/http.response"
+                        }
+                    },
+                    "default": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/http.response"
+                        }
+                    }
+                }
+            }
+        },
         "/user/auth/send-code": {
             "post": {
                 "description": "send secret code to email user",
@@ -146,7 +204,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/http.userSignInRequest"
+                            "$ref": "#/definitions/domain.UserSignIn"
                         }
                     }
                 ],
@@ -154,7 +212,59 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/http.tokenResponse"
+                            "$ref": "#/definitions/http.userSignInResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/http.response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/http.response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/http.response"
+                        }
+                    },
+                    "default": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/http.response"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/delete": {
+            "get": {
+                "security": [
+                    {
+                        "UsersAuth": []
+                    }
+                ],
+                "description": "delete user account",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "account"
+                ],
+                "summary": "Delete User",
+                "responses": {
+                    "201": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
                         }
                     },
                     "400": {
@@ -204,7 +314,7 @@ const docTemplate = `{
                 "summary": "Update User",
                 "parameters": [
                     {
-                        "description": "user info",
+                        "description": "user update info",
                         "name": "input",
                         "in": "body",
                         "required": true,
@@ -254,11 +364,12 @@ const docTemplate = `{
             "required": [
                 "created_at",
                 "email",
-                "name"
+                "id",
+                "username"
             ],
             "properties": {
                 "created_at": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "email": {
                     "type": "string"
@@ -266,24 +377,62 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "name": {
-                    "type": "string"
-                },
                 "photo": {
                     "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.UserSignIn": {
+            "type": "object",
+            "required": [
+                "email",
+                "secret_code"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "secret_code": {
+                    "type": "integer",
+                    "minimum": 100000
                 }
             }
         },
         "domain.UserUpdate": {
             "type": "object",
             "required": [
-                "name"
+                "username"
             ],
             "properties": {
-                "name": {
+                "photo": {
                     "type": "string"
                 },
-                "photo": {
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.refreshTokenRequest": {
+            "type": "object",
+            "required": [
+                "refresh_token"
+            ],
+            "properties": {
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.refreshTokenResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "access_token_expires_at": {
                     "type": "string"
                 }
             }
@@ -292,14 +441,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "message": {
-                    "type": "string"
-                }
-            }
-        },
-        "http.tokenResponse": {
-            "type": "object",
-            "properties": {
-                "access_token": {
                     "type": "string"
                 }
             }
@@ -315,19 +456,23 @@ const docTemplate = `{
                 }
             }
         },
-        "http.userSignInRequest": {
+        "http.userSignInResponse": {
             "type": "object",
-            "required": [
-                "email",
-                "secret_code"
-            ],
             "properties": {
-                "email": {
+                "access_token": {
                     "type": "string"
                 },
-                "secret_code": {
-                    "type": "integer",
-                    "minimum": 100000
+                "access_token_expires_at": {
+                    "type": "string"
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
+                "refresh_token_expites_at": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/domain.User"
                 }
             }
         }

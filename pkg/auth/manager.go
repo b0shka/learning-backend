@@ -3,10 +3,10 @@ package auth
 import (
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/google/uuid"
 )
 
 type Manager interface {
-	CreateToken(userId primitive.ObjectID, tokenTTL time.Duration) (string, error)
+	CreateToken(userId uuid.UUID, tokenTTL time.Duration) (string, *Payload, error)
 	VerifyToken(accessToken string) (*Payload, error)
 }

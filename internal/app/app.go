@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,14 +13,14 @@ import (
 
 	"github.com/b0shka/backend/internal/config"
 	handler "github.com/b0shka/backend/internal/handler/http"
-	"github.com/b0shka/backend/internal/repository"
+	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
 	"github.com/b0shka/backend/internal/server"
 	"github.com/b0shka/backend/internal/service"
 	"github.com/b0shka/backend/pkg/auth"
-	"github.com/b0shka/backend/pkg/database/mongodb"
 	"github.com/b0shka/backend/pkg/email"
 	"github.com/b0shka/backend/pkg/hash"
 	"github.com/b0shka/backend/pkg/logger"
+	_ "github.com/lib/pq"
 )
 
 //	@title			Service API
@@ -38,14 +40,6 @@ func Run(configPath string) {
 		logger.Error(err)
 		return
 	}
-
-	mongoClient, err := mongodb.NewClient(cfg.Mongo.URI)
-	if err != nil {
-		logger.Error(err)
-		return
-	}
-
-	db := mongoClient.Database(cfg.Mongo.DBName)
 
 	hasher, err := hash.NewSHA256Hasher(cfg.Auth.CodeSalt)
 	if err != nil {
@@ -67,7 +61,24 @@ func Run(configPath string) {
 		return
 	}
 
-	repos := repository.NewRepositories(db)
+	// mongoClient, err := mongodb.NewClient(cfg.Mongo.URI)
+	// if err != nil {
+	// 	logger.Error(err)
+	// 	return
+	// }
+	// db := mongoClient.Database(cfg.Mongo.DBName)
+	// repos := repository.NewRepositories(db)
+
+	postgresSource := fmt.Sprintf(
+		"host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
+		cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.User, cfg.Postgres.DBName, cfg.Postgres.Password,
+	)
+	db, err := sql.Open("postgres", postgresSource)
+	if err != nil {
+		logger.Error(err)
+	}
+
+	repos := repository.NewStore(db)
 	services := service.NewServices(service.Deps{
 		Repos:        repos,
 		Hasher:       hasher,
@@ -101,8 +112,13 @@ func Run(configPath string) {
 	}
 	logger.Info("Server stoped")
 
-	if err := mongoClient.Disconnect(context.Background()); err != nil {
+	// if err := mongoClient.Disconnect(context.Background()); err != nil {
+	// 	logger.Error(err.Error())
+	// }
+
+	if err := db.Close(); err != nil {
 		logger.Error(err.Error())
 	}
+
 	logger.Info("Database disconnected")
 }

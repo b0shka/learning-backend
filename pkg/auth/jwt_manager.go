@@ -7,7 +7,7 @@ import (
 
 	"github.com/b0shka/backend/internal/domain"
 	"github.com/dgrijalva/jwt-go"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/google/uuid"
 )
 
 var minSecretKeyLength = 32
@@ -24,14 +24,15 @@ func NewJWTManager(secretKey string) (Manager, error) {
 	return &JWTManager{secretKey: secretKey}, nil
 }
 
-func (m *JWTManager) CreateToken(userId primitive.ObjectID, ducation time.Duration) (string, error) {
+func (m *JWTManager) CreateToken(userId uuid.UUID, ducation time.Duration) (string, *Payload, error) {
 	payload, err := NewPayload(userId, ducation)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
-	return jwtToken.SignedString([]byte(m.secretKey))
+	token, err := jwtToken.SignedString([]byte(m.secretKey))
+	return token, payload, err
 }
 
 func (m *JWTManager) VerifyToken(accessToken string) (*Payload, error) {

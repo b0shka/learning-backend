@@ -10,9 +10,9 @@ import (
 	"github.com/b0shka/backend/pkg/auth"
 	"github.com/b0shka/backend/pkg/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func addAuthorizationHeader(
@@ -20,18 +20,20 @@ func addAuthorizationHeader(
 	request *http.Request,
 	tokenManager auth.Manager,
 	authorizationType string,
-	userId primitive.ObjectID,
+	userId uuid.UUID,
 	duration time.Duration,
 ) {
-	token, err := tokenManager.CreateToken(userId, duration)
+	token, payload, err := tokenManager.CreateToken(userId, duration)
 	require.NoError(t, err)
+	require.NotEmpty(t, payload)
 
 	authorizationHeader := fmt.Sprintf("%s %s", authorizationType, token)
 	request.Header.Set(authorizationHeaderKey, authorizationHeader)
 }
 
 func TestHandler_userIdentity(t *testing.T) {
-	userId := primitive.NewObjectID()
+	userId, err := uuid.NewRandom()
+	require.NoError(t, err)
 
 	testTable := []struct {
 		name         string
@@ -82,7 +84,7 @@ func TestHandler_userIdentity(t *testing.T) {
 
 	for _, testCase := range testTable {
 		t.Run(testCase.name, func(t *testing.T) {
-			tokenManager, err := auth.NewJWTManager(utils.RandomString(32))
+			tokenManager, err := auth.NewPasetoManager(utils.RandomString(32))
 			require.NoError(t, err)
 
 			router := gin.Default()
@@ -108,7 +110,9 @@ func TestHandler_userIdentity(t *testing.T) {
 }
 
 func TestGetUserPayload(t *testing.T) {
-	userId := primitive.NewObjectID()
+	userId, err := uuid.NewRandom()
+	require.NoError(t, err)
+
 	payload, err := auth.NewPayload(userId, time.Minute)
 	require.NoError(t, err)
 

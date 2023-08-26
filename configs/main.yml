@@ -6,8 +6,9 @@ http:
 
 auth:
   jwt:
-    accessTokenTTL: 720h
-  sercetCodeLifetime: 900
+    accessTokenTTL: 15m
+    refreshTokenTTL: 720h
+  sercetCodeLifetime: 5m
 
 smtp:
   host: "smtp.gmail.com"
@@ -16,5 +17,7 @@ smtp:
 email:
   templates:
     verify_email: "./templates/verify_email.html"
+    signin_account: "./templates/signin_account.html"
   subjects:
     verify_email: "Код подтверждения для входа в аккаунт"
+    signin_account: "Кто-то вошел в ваш аккаунт"

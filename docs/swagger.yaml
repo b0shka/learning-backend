@@ -3,47 +3,22 @@ definitions:
   domain.User:
     properties:
       created_at:
-        type: integer
+        type: string
       email:
         type: string
       id:
         type: string
-      name:
-        type: string
       photo:
+        type: string
+      username:
         type: string
     required:
     - created_at
     - email
-    - name
+    - id
+    - username
     type: object
-  domain.UserUpdate:
-    properties:
-      name:
-        type: string
-      photo:
-        type: string
-    required:
-    - name
-    type: object
-  http.response:
-    properties:
-      message:
-        type: string
-    type: object
-  http.tokenResponse:
-    properties:
-      access_token:
-        type: string
-    type: object
-  http.userSendCodeRequest:
-    properties:
-      email:
-        type: string
-    required:
-    - email
-    type: object
-  http.userSignInRequest:
+  domain.UserSignIn:
     properties:
       email:
         type: string
@@ -53,6 +28,54 @@ definitions:
     required:
     - email
     - secret_code
+    type: object
+  domain.UserUpdate:
+    properties:
+      photo:
+        type: string
+      username:
+        type: string
+    required:
+    - username
+    type: object
+  http.refreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  http.refreshTokenResponse:
+    properties:
+      access_token:
+        type: string
+      access_token_expires_at:
+        type: string
+    type: object
+  http.response:
+    properties:
+      message:
+        type: string
+    type: object
+  http.userSendCodeRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  http.userSignInResponse:
+    properties:
+      access_token:
+        type: string
+      access_token_expires_at:
+        type: string
+      refresh_token:
+        type: string
+      refresh_token_expites_at:
+        type: string
+      user:
+        $ref: '#/definitions/domain.User'
     type: object
 host: localhost:8080
 info:
@@ -94,6 +117,44 @@ paths:
       summary: Get User
       tags:
       - account
+  /user/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: user refresh token
+      parameters:
+      - description: refresh info
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/http.refreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/http.refreshTokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.response'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/http.response'
+      summary: User Refresh Token
+      tags:
+      - auth
   /user/auth/send-code:
     post:
       consumes:
@@ -143,14 +204,14 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/http.userSignInRequest'
+          $ref: '#/definitions/domain.UserSignIn'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/http.tokenResponse'
+            $ref: '#/definitions/http.userSignInResponse'
         "400":
           description: Bad Request
           schema:
@@ -170,13 +231,46 @@ paths:
       summary: User SignIn
       tags:
       - auth
+  /user/delete:
+    get:
+      consumes:
+      - application/json
+      description: delete user account
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.response'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/http.response'
+      security:
+      - UsersAuth: []
+      summary: Delete User
+      tags:
+      - account
   /user/update:
     post:
       consumes:
       - application/json
       description: update user account
       parameters:
-      - description: user info
+      - description: user update info
         in: body
         name: input
         required: true
