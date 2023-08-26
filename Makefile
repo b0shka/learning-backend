@@ -22,8 +22,7 @@ test:
 #	make migrateup
 	GIN_MODE=release go test --short -coverprofile=cover.out -v ./...
 	make test.coverage
-	make migratedown
-	make migrateup
+#	make migratedown
 #	make dropdb
 #	docker stop ${POSTGRES_IMAGE}
 #	docker rm ${POSTGRES_IMAGE}
