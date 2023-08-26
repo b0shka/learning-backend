@@ -31,7 +31,6 @@ type (
 		Host     string `envconfig:"POSTGRESQL_HOST"`
 		Port     string `envconfig:"POSTGRESQL_PORT"`
 		DBName   string `envconfig:"POSTGRESQL_DB_NAME"`
-		Source   string `envconfig:"POSTGRESQL_SOURCE"`
 	}
 
 	EmailConfig struct {
@@ -93,10 +92,6 @@ func InitConfig(configPath string) (*Config, error) {
 			return nil, err
 		}
 	}
-
-	// if err := godotenv.Load(); err != nil {
-	// 	return nil, err
-	// }
 
 	if err := envconfig.Process("", &cfg); err != nil {
 		log.Fatal(err.Error())

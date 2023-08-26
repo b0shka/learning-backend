@@ -1,21 +1,32 @@
 PROGRAM_NAME = app
 REGISTRY = b0shka
 API_IMAGE = backend
+POSTGRES_IMAGE=postgres
 TAG = latest
+NETWOTK=backend-network
+DB_URL=postgresql://root:qwerty@localhost:5432/service?sslmode=disable
 
-.PHONY: build start test lint swag mock docker-build docker-run docker-push docker-run-postgres createdb dropdb migrateup migratedown sqlc
+.PHONY: build start test lint swag mock network docker-build docker-run docker-push docker-run-postgres createdb dropdb create-migrate migrateup migratedown sqlc
 .DEFAULT_GOAL := start
 
 build:
 	go mod download && CGO_ENABLED=0 GOOS=linux go build -o ./.bin/${PROGRAM_NAME} ./cmd/app/main.go
 
 start: build
+#	docker compose up
 	APP_ENV="local" .bin/app
-# docker compose up
 
 test:
+#	make docker-run-postgres
+#	make createdb
+#	make migrateup
 	GIN_MODE=release go test --short -coverprofile=cover.out -v ./...
 	make test.coverage
+	make migratedown
+	make migrateup
+#	make dropdb
+#	docker stop ${POSTGRES_IMAGE}
+#	docker rm ${POSTGRES_IMAGE}
 
 test.coverage:
 	go tool cover -func=cover.out | grep "total"
@@ -28,32 +39,40 @@ swag:
 
 mock:
 	mockgen -source=internal/repository/mongodb/repository.go -destination=internal/repository/mongodb/mocks/mock_repository.go
-	mockgen -source=internal/repository/postgresql/sqlc/querier.go -destination=internal/repository/postgresql/mocks/mock_repository.go
+
+	mockgen -destination=internal/repository/postgresql/mocks/mock_repository.go github.com/b0shka/backend/internal/repository/postgresql/sqlc Store
+
 	mockgen -source=internal/service/service.go -destination=internal/service/mocks/mock_service.go
+
+network:
+	docker network create ${NETWOTK}
 
 docker-build:
 	docker build -f Dockerfile -t ${REGISTRY}/${API_IMAGE}:${TAG} .
 
 docker-run:
-	docker run -d -p 8080:8080 -e GIN_MODE=release --rm --name ${API_IMAGE} ${REGISTRY}/${API_IMAGE}:${TAG}
+	docker run --name ${API_IMAGE} --network ${NETWOTK} -p 8080:8080 -e GIN_MODE=release -e APP_ENV=local --rm -d ${REGISTRY}/${API_IMAGE}:${TAG}
 
 docker-push:
 	docker push ${REGISTRY}/${API_IMAGE}:${TAG}
 
 docker-run-postgres:
-	docker run --name postgres15 -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=qwerty -d postgres:15-alpine
+	docker run --name ${POSTGRES_IMAGE} --network ${NETWOTK} -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=qwerty -d postgres:15-alpine
 
 createdb:
-	docker exec -it postgres15 createdb --username=root --owner=root service
+	docker exec -it ${POSTGRES_IMAGE} createdb --username=root --owner=root service
 
 dropdb:
-	docker exec -it postgres15 dropdb service
+	docker exec -it ${POSTGRES_IMAGE} dropdb service
+
+create-migrate:
+	migrate create -ext sql -dir internal/repository/postgres/migration -seq name_migration
 
 migrateup:
-	migrate -path internal/repository/postgresql/migration -database "postgresql://root:qwerty@localhost:5432/service?sslmode=disable" -verbose up
+	migrate -path internal/repository/postgresql/migration -database "$(DB_URL)" -verbose up
 
 migratedown:
-	migrate -path internal/repository/postgresql/migration -database "postgresql://root:qwerty@localhost:5432/service?sslmode=disable" -verbose down
+	migrate -path internal/repository/postgresql/migration -database "$(DB_URL)" -verbose down
 
 sqlc:
 	sqlc generate

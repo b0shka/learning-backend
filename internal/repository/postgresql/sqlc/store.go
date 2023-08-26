@@ -4,14 +4,18 @@ import (
 	"database/sql"
 )
 
-type Store struct {
+type Store interface {
 	Querier
+}
+
+type SQLStore struct {
+	*Queries
 	db *sql.DB
 }
 
-func NewStore(db *sql.DB) *Store {
-	return &Store{
-		Querier: New(db),
+func NewStore(db *sql.DB) Store {
+	return &SQLStore{
+		Queries: New(db),
 		db:      db,
 	}
 }

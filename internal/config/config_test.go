@@ -11,7 +11,6 @@ func TestInitConfig(t *testing.T) {
 	type env struct {
 		mongoURI             string
 		mongoDBName          string
-		postgresqlSource     string
 		postgresqlUser       string
 		postgresqlPassword   string
 		postgresqlHost       string
@@ -32,7 +31,6 @@ func TestInitConfig(t *testing.T) {
 	setEnv := func(env env) {
 		os.Setenv("MONGO_URI", env.mongoURI)
 		os.Setenv("MONGO_DB_NAME", env.mongoDBName)
-		os.Setenv("POSTGRESQL_SOURCE", env.postgresqlSource)
 		os.Setenv("POSTGRESQL_USER", env.postgresqlUser)
 		os.Setenv("POSTGRESQL_PASSWORD", env.postgresqlPassword)
 		os.Setenv("POSTGRESQL_HOST", env.postgresqlHost)
@@ -58,7 +56,6 @@ func TestInitConfig(t *testing.T) {
 				env: env{
 					mongoURI:             "mongodb://localhost:27017",
 					mongoDBName:          "service",
-					postgresqlSource:     "postgresql://root:qwerty@localhost:5432/root",
 					postgresqlUser:       "root",
 					postgresqlPassword:   "qwerty",
 					postgresqlHost:       "localhost",
@@ -77,7 +74,6 @@ func TestInitConfig(t *testing.T) {
 					DBName: "service",
 				},
 				Postgres: PostgresConfig{
-					Source:   "postgresql://root:qwerty@localhost:5432/root",
 					User:     "root",
 					Password: "qwerty",
 					Host:     "localhost",

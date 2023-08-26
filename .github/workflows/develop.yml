@@ -43,9 +43,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # - name: Create test db container
-      #   docker run --name postgres15 -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=qwerty -d postgres:15-alpine
-
       - name: Install golang-migrate
         run: |
           curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.2/migrate.linux-amd64.tar.gz | tar xvz
