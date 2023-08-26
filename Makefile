@@ -1,12 +1,13 @@
-PROGRAM_NAME = app
+PROGRAM_NAME = main
 REGISTRY = b0shka
 API_IMAGE = backend
-POSTGRES_IMAGE=postgres
+POSTGRES_IMAGE = postgres
 TAG = latest
 NETWOTK=backend-network
 DB_URL=postgresql://root:qwerty@localhost:5432/service?sslmode=disable
+MIGRATION_URL=internal/repository/postgresql/migration
 
-.PHONY: build start test lint swag mock network docker-build docker-run docker-push docker-run-postgres createdb dropdb create-migrate migrateup migratedown sqlc
+.PHONY: build start test lint swag mock network docker-build docker-run docker-push docker-run-postgres migrateup migratedown sqlc
 .DEFAULT_GOAL := start
 
 build:
@@ -14,16 +15,14 @@ build:
 
 start: build
 #	docker compose up
-	APP_ENV="local" .bin/app
+	APP_ENV="local" .bin/main
 
 test:
 #	make docker-run-postgres
-#	make createdb
 #	make migrateup
 	GIN_MODE=release go test --short -coverprofile=cover.out -v ./...
 	make test.coverage
 #	make migratedown
-#	make dropdb
 #	docker stop ${POSTGRES_IMAGE}
 #	docker rm ${POSTGRES_IMAGE}
 
@@ -54,22 +53,13 @@ docker-push:
 	docker push ${REGISTRY}/${API_IMAGE}:${TAG}
 
 docker-run-postgres:
-	docker run --name ${POSTGRES_IMAGE} --network ${NETWOTK} -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=qwerty -d postgres:15-alpine
-
-createdb:
-	docker exec -it ${POSTGRES_IMAGE} createdb --username=root --owner=root service
-
-dropdb:
-	docker exec -it ${POSTGRES_IMAGE} dropdb service
-
-create-migrate:
-	migrate create -ext sql -dir internal/repository/postgres/migration -seq name_migration
+	docker run --name ${POSTGRES_IMAGE} --network ${NETWOTK} -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=qwerty -e POSTGRES_DB=service -d postgres:15-alpine
 
 migrateup:
-	migrate -path internal/repository/postgresql/migration -database "$(DB_URL)" -verbose up
+	migrate -path ${MIGRATION_URL} -database ${DB_URL} -verbose up
 
 migratedown:
-	migrate -path internal/repository/postgresql/migration -database "$(DB_URL)" -verbose down
+	migrate -path ${MIGRATION_URL} -database ${DB_URL} -verbose down
 
 sqlc:
 	sqlc generate

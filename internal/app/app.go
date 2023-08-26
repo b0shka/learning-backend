@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -20,6 +19,9 @@ import (
 	"github.com/b0shka/backend/pkg/email"
 	"github.com/b0shka/backend/pkg/hash"
 	"github.com/b0shka/backend/pkg/logger"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
 )
 
@@ -63,20 +65,20 @@ func Run(configPath string) {
 
 	// mongoClient, err := mongodb.NewClient(cfg.Mongo.URI)
 	// if err != nil {
-	// 	logger.Error(err)
+	// 	logger.Errorf("cannot connect to database: %s", err)
 	// 	return
 	// }
 	// db := mongoClient.Database(cfg.Mongo.DBName)
 	// repos := repository.NewRepositories(db)
 
-	postgresSource := fmt.Sprintf(
-		"host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
-		cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.User, cfg.Postgres.DBName, cfg.Postgres.Password,
-	)
-	db, err := sql.Open("postgres", postgresSource)
+	db, err := sql.Open("postgres", cfg.Postgres.URL)
 	if err != nil {
-		logger.Error(err)
+		logger.Errorf("cannot connect to database: %s", err)
+		return
 	}
+	logger.Info("Success connect to database")
+
+	runDBMigration(cfg.Postgres.MigrationURL, cfg.Postgres.URL)
 
 	repos := repository.NewStore(db)
 	services := service.NewServices(service.Deps{
@@ -121,4 +123,19 @@ func Run(configPath string) {
 	}
 
 	logger.Info("Database disconnected")
+}
+
+func runDBMigration(migrationURL, dbSource string) {
+	migration, err := migrate.New(migrationURL, dbSource)
+	if err != nil {
+		logger.Errorf("connot create new migarte instance: %s", err.Error())
+		return
+	}
+
+	if err := migration.Up(); err != nil && err != migrate.ErrNoChange {
+		logger.Errorf("failed to run migrate up: %s", err.Error())
+		return
+	}
+
+	logger.Info("db migrated successfully")
 }

@@ -14,12 +14,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type UserSignInEmail struct {
-	Email     string
-	UserAgent string
-	ClientIp  string
-}
-
 type Tokens struct {
 	SessionID             uuid.UUID `json:"session_id"`
 	RefreshToken          string    `json:"refresh_token"`

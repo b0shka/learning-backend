@@ -13,8 +13,8 @@
 - mockgen (used to start mock generation for unit tests)
 - sqlc (used to run code generation for working with PostgreSQL)
 - golang-migrate (used to run migrations in the database)
-- golangci-lint (optional, used to run code checks)
-- swag (optional, used to re-generate swagger documentation)
+- golangci-lint (used to run code checks)
+- swag (used to re-generate swagger documentation)
 
 Create `.env` file in root directory and add following values:
 

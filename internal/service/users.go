@@ -55,10 +55,15 @@ func (s *UsersService) SendCodeEmail(ctx context.Context, email string) error {
 		return err
 	}
 
-	err = s.sendEmailMessage(email, s.emailConfig.Templates.Verify, domain.UserSignIn{
-		Email:      email,
-		SecretCode: secretCode,
-	})
+	err = s.sendEmailMessage(
+		email,
+		s.emailConfig.Templates.Verify,
+		s.emailConfig.Subjects.Verify,
+		domain.UserSignIn{
+			Email:      email,
+			SecretCode: secretCode,
+		},
+	)
 	if err != nil {
 		return err
 	}
@@ -138,16 +143,21 @@ func (s *UsersService) SignIn(ctx *gin.Context, inp domain.UserSignIn) (reposito
 		return repository.User{}, Tokens{}, err
 	}
 
-	err = s.sendEmailMessage(inp.Email, s.emailConfig.Templates.SignIn, UserSignInEmail{
-		Email:     inp.Email,
-		UserAgent: ctx.Request.UserAgent(),
-		ClientIp:  ctx.ClientIP(),
-	})
+	err = s.sendEmailMessage(
+		inp.Email,
+		s.emailConfig.Templates.SignIn,
+		s.emailConfig.Subjects.SignIn,
+		domain.UserMetadata{
+			Email:     inp.Email,
+			UserAgent: ctx.Request.UserAgent(),
+			ClientIp:  ctx.ClientIP(),
+		},
+	)
 
 	return user, tokens, err
 }
 
-func (s *UsersService) sendEmailMessage(email, templateFile string, contentData any) error {
+func (s *UsersService) sendEmailMessage(email, templateFile, subject string, contentData any) error {
 	var content bytes.Buffer
 	contentHtml, err := template.ParseFiles(templateFile)
 	if err != nil {
@@ -160,7 +170,7 @@ func (s *UsersService) sendEmailMessage(email, templateFile string, contentData 
 	}
 
 	err = s.emailService.SendEmail(domain.SendEmailConfig{
-		Subject: s.emailConfig.Subjects.SignIn,
+		Subject: subject,
 		Content: content.String(),
 	}, email)
 	if err != nil {

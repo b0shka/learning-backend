@@ -23,3 +23,9 @@ type UserUpdate struct {
 	Username string `json:"username" binding:"required"`
 	Photo    string `json:"photo"`
 }
+
+type UserMetadata struct {
+	Email     string
+	UserAgent string
+	ClientIp  string
+}

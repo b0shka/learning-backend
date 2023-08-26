@@ -26,11 +26,13 @@ type (
 	}
 
 	PostgresConfig struct {
-		User     string `envconfig:"POSTGRESQL_USER"`
-		Password string `envconfig:"POSTGRESQL_PASSWORD"`
-		Host     string `envconfig:"POSTGRESQL_HOST"`
-		Port     string `envconfig:"POSTGRESQL_PORT"`
-		DBName   string `envconfig:"POSTGRESQL_DB_NAME"`
+		User         string `envconfig:"POSTGRESQL_USER"`
+		Password     string `envconfig:"POSTGRESQL_PASSWORD"`
+		Host         string `envconfig:"POSTGRESQL_HOST"`
+		Port         string `envconfig:"POSTGRESQL_PORT"`
+		DBName       string `envconfig:"POSTGRESQL_DB_NAME"`
+		URL          string `envconfig:"POSTGRESQL_URL"`
+		MigrationURL string `envconfig:"MIGRATION_URL"`
 	}
 
 	EmailConfig struct {

@@ -16,6 +16,8 @@ func TestInitConfig(t *testing.T) {
 		postgresqlHost       string
 		postgresqlPort       string
 		postgresqlDBName     string
+		postgresqlURL        string
+		migrationURL         string
 		emailServiceName     string
 		emailServiceAddress  string
 		emailServicePassword string
@@ -36,6 +38,8 @@ func TestInitConfig(t *testing.T) {
 		os.Setenv("POSTGRESQL_HOST", env.postgresqlHost)
 		os.Setenv("POSTGRESQL_PORT", env.postgresqlPort)
 		os.Setenv("POSTGRESQL_DB_NAME", env.postgresqlDBName)
+		os.Setenv("POSTGRESQL_URL", env.postgresqlURL)
+		os.Setenv("MIGRATION_URL", env.migrationURL)
 		os.Setenv("EMAIL_SERVICE_NAME", env.emailServiceName)
 		os.Setenv("EMAIL_SERVICE_ADDRESS", env.emailServiceAddress)
 		os.Setenv("EMAIL_SERVICE_PASSWORD", env.emailServicePassword)
@@ -61,6 +65,8 @@ func TestInitConfig(t *testing.T) {
 					postgresqlHost:       "localhost",
 					postgresqlPort:       "5432",
 					postgresqlDBName:     "service",
+					postgresqlURL:        "postgresql://root:qwerty@localhost:5432/service?sslmode=disable",
+					migrationURL:         "file://internal/repository/postgresql/migration",
 					emailServiceName:     "Service",
 					emailServiceAddress:  "service@gmail.com",
 					emailServicePassword: "qwerty123",
@@ -74,11 +80,13 @@ func TestInitConfig(t *testing.T) {
 					DBName: "service",
 				},
 				Postgres: PostgresConfig{
-					User:     "root",
-					Password: "qwerty",
-					Host:     "localhost",
-					Port:     "5432",
-					DBName:   "service",
+					User:         "root",
+					Password:     "qwerty",
+					Host:         "localhost",
+					Port:         "5432",
+					DBName:       "service",
+					URL:          "postgresql://root:qwerty@localhost:5432/service?sslmode=disable",
+					MigrationURL: "file://internal/repository/postgresql/migration",
 				},
 				Email: EmailConfig{
 					ServiceName:     "Service",
