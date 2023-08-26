@@ -13,7 +13,7 @@ import (
 	mock_repository "github.com/b0shka/backend/internal/repository/postgresql/mocks"
 	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
 	"github.com/b0shka/backend/internal/service"
-	mock_worker "github.com/b0shka/backend/internal/service/worker/mocks"
+	mock_worker "github.com/b0shka/backend/internal/worker/mocks"
 	"github.com/b0shka/backend/pkg/auth"
 	"github.com/b0shka/backend/pkg/hash"
 	"github.com/gin-gonic/gin"

@@ -7,7 +7,7 @@ import (
 	"github.com/b0shka/backend/internal/config"
 	"github.com/b0shka/backend/internal/domain"
 	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
-	"github.com/b0shka/backend/internal/service/worker"
+	"github.com/b0shka/backend/internal/worker"
 	"github.com/b0shka/backend/pkg/auth"
 	"github.com/b0shka/backend/pkg/hash"
 	"github.com/gin-gonic/gin"

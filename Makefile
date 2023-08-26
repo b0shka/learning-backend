@@ -40,7 +40,7 @@ mock:
 	mockgen -source=internal/repository/mongodb/repository.go -destination=internal/repository/mongodb/mocks/mock_repository.go
 	mockgen -destination=internal/repository/postgresql/mocks/mock_repository.go github.com/b0shka/backend/internal/repository/postgresql/sqlc Store
 	mockgen -source=internal/service/service.go -destination=internal/service/mocks/mock_service.go
-	mockgen -destination internal/service/worker/mocks/mock_worker.go github.com/b0shka/backend/internal/service/worker TaskDistributor
+	mockgen -destination internal/worker/mocks/mock_worker.go github.com/b0shka/backend/internal/worker TaskDistributor
 
 network:
 	docker network create ${NETWOTK}

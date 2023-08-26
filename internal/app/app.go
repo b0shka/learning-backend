@@ -11,13 +11,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/b0shka/backend/internal/service/worker"
-
 	"github.com/b0shka/backend/internal/config"
 	handler "github.com/b0shka/backend/internal/handler/http"
 	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
 	"github.com/b0shka/backend/internal/server"
 	"github.com/b0shka/backend/internal/service"
+	"github.com/b0shka/backend/internal/worker"
 	"github.com/b0shka/backend/pkg/auth"
 	"github.com/b0shka/backend/pkg/email"
 	"github.com/b0shka/backend/pkg/hash"

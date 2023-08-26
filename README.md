@@ -25,6 +25,8 @@ MONGO_DB_NAME=<db name>
 POSTGRESQL_URL=postgresql://<user>:<password>@<host>:<port>/<db name>?sslmode=disable
 MIGRATION_URL=file://<path to folder with migrate files>
 
+REDIS_ADDRESS=<host>:<port>
+
 EMAIL_SERVICE_NAME=<name complany>
 EMAIL_SERVICE_ADDRESS=<email address>
 EMAIL_SERVICE_PASSWORD=<email password>
