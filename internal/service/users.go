@@ -181,6 +181,7 @@ func (s *UsersService) createSession(ctx *gin.Context, id uuid.UUID) (Tokens, er
 		return res, err
 	}
 
+	res.SessionID = refreshPayload.ID
 	res.RefreshToken = refreshToken
 	res.RefreshTokenExpiresAt = refreshPayload.ExpiresAt
 

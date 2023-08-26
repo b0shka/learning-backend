@@ -8,6 +8,7 @@ import (
 
 	"github.com/b0shka/backend/internal/domain"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func (h *Handler) initUsersRoutes(api *gin.RouterGroup) {
@@ -62,6 +63,7 @@ func (h *Handler) sendCodeEmail(c *gin.Context) {
 }
 
 type userSignInResponse struct {
+	SessionID             uuid.UUID   `json:"session_id"`
 	RefreshToken          string      `json:"refresh_token"`
 	RefreshTokenExpiresAt time.Time   `json:"refresh_token_expites_at"`
 	AccessToken           string      `json:"access_token"`
@@ -99,6 +101,7 @@ func (h *Handler) userSignIn(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, userSignInResponse{
+		SessionID:             res.SessionID,
 		RefreshToken:          res.RefreshToken,
 		RefreshTokenExpiresAt: res.RefreshTokenExpiresAt,
 		AccessToken:           res.AccessToken,

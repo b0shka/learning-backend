@@ -170,6 +170,7 @@ func TestHandler_userSignIn(t *testing.T) {
 	type mockBehavior func(s *mock_service.MockUsers, input domain.UserSignIn)
 
 	tokens := service.Tokens{
+		SessionID:             uuid.New(),
 		RefreshToken:          utils.RandomString(10),
 		RefreshTokenExpiresAt: time.Now().Add(time.Hour * 720),
 		AccessToken:           utils.RandomString(10),

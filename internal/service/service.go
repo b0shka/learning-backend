@@ -21,6 +21,7 @@ type UserSignInEmail struct {
 }
 
 type Tokens struct {
+	SessionID             uuid.UUID `json:"session_id"`
 	RefreshToken          string    `json:"refresh_token"`
 	RefreshTokenExpiresAt time.Time `json:"refresh_token_expires_at"`
 	AccessToken           string    `json:"access_token"`
