@@ -14,6 +14,12 @@ import (
 	"github.com/google/uuid"
 )
 
+type UserSignInEmail struct {
+	Email     string
+	UserAgent string
+	ClientIp  string
+}
+
 type Tokens struct {
 	RefreshToken          string    `json:"refresh_token"`
 	RefreshTokenExpiresAt time.Time `json:"refresh_token_expires_at"`

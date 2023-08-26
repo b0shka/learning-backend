@@ -43,10 +43,12 @@ type (
 
 	EmailTemplates struct {
 		Verify string `mapstructure:"verify_email"`
+		SignIn string `mapstructure:"signin_account"`
 	}
 
 	EmailSubjects struct {
 		Verify string `mapstructure:"verify_email"`
+		SignIn string `mapstructure:"signin_account"`
 	}
 
 	AuthConfig struct {

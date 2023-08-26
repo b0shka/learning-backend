@@ -86,9 +86,11 @@ func TestInitConfig(t *testing.T) {
 					ServicePassword: "qwerty123",
 					Templates: EmailTemplates{
 						Verify: "./templates/verify_email.html",
+						SignIn: "./templates/signin_account.html",
 					},
 					Subjects: EmailSubjects{
 						Verify: "Код подтверждения для входа в аккаунт",
+						SignIn: "Кто-то вошел в ваш аккаунт",
 					},
 				},
 				Auth: AuthConfig{

@@ -1,8 +1,14 @@
-<body style="margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; text-align: center;">
-    <div style="padding: 20px; border-radius: 10px; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);">
-        <h2 style="margin: 0; font-size: 24px;">Код подтверждения</h2>
-        <div style="background-color: #e2e2e2; color: black; font-size: 20px; margin-top: 10px; padding: 10px 20px; border-radius: 10px; display: inline-block; letter-spacing: .2rem;">
-            {{ .SecretCode }}
+<div style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;">
+    <div style="max-width: 600px; margin: 20px auto; padding: 20px; background-color: #ffffff; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);">
+        <h2 style="color: #333333;">Код подтверждения</h2>
+        <p style="color: #666666;">Здравствуйте!</p>
+        <p style="color: #666666;">Вам необходимо ввести следующий одноразовый код подтверждения для входа в аккаунт <b>{{ .Email }}</b>:</p>
+        <div style="text-align: center;">
+            <div style="background-color: #e2e2e2; color: black; font-size: 20px; margin-top: 10px; padding: 10px 20px; border-radius: 10px; display: inline-block; letter-spacing: .2rem;">
+                {{ .SecretCode }}
+            </div>
         </div>
+        <p style="color: #666666;">Если вы не запрашивали этот код или считаете, что это была попытка несанкционированного доступа, пожалуйста, свяжитесь с нами немедленно.</p>
+        <p style="color: #666666;">С уважением,<br>Ваша команда поддержки</p>
     </div>
-</body>
+</div>

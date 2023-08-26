@@ -1,6 +1,6 @@
 package domain
 
-type VerifyEmailConfig struct {
+type SendEmailConfig struct {
 	Subject string
 	Content string
 }

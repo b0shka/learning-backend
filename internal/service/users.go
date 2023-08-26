@@ -55,24 +55,10 @@ func (s *UsersService) SendCodeEmail(ctx context.Context, email string) error {
 		return err
 	}
 
-	var content bytes.Buffer
-	contentHtml, err := template.ParseFiles(s.emailConfig.Templates.Verify)
-	if err != nil {
-		return err
-	}
-
-	err = contentHtml.Execute(&content, domain.UserSignIn{
+	err = s.sendEmailMessage(email, s.emailConfig.Templates.Verify, domain.UserSignIn{
 		Email:      email,
 		SecretCode: secretCode,
 	})
-	if err != nil {
-		return err
-	}
-
-	err = s.emailService.SendEmail(domain.VerifyEmailConfig{
-		Subject: s.emailConfig.Subjects.Verify,
-		Content: content.String(),
-	}, email)
 	if err != nil {
 		return err
 	}
@@ -148,7 +134,40 @@ func (s *UsersService) SignIn(ctx *gin.Context, inp domain.UserSignIn) (reposito
 	}
 
 	tokens, err := s.createSession(ctx, user.ID)
+	if err != nil {
+		return repository.User{}, Tokens{}, err
+	}
+
+	err = s.sendEmailMessage(inp.Email, s.emailConfig.Templates.SignIn, UserSignInEmail{
+		Email:     inp.Email,
+		UserAgent: ctx.Request.UserAgent(),
+		ClientIp:  ctx.ClientIP(),
+	})
+
 	return user, tokens, err
+}
+
+func (s *UsersService) sendEmailMessage(email, templateFile string, contentData any) error {
+	var content bytes.Buffer
+	contentHtml, err := template.ParseFiles(templateFile)
+	if err != nil {
+		return err
+	}
+
+	err = contentHtml.Execute(&content, contentData)
+	if err != nil {
+		return err
+	}
+
+	err = s.emailService.SendEmail(domain.SendEmailConfig{
+		Subject: s.emailConfig.Subjects.SignIn,
+		Content: content.String(),
+	}, email)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *UsersService) createSession(ctx *gin.Context, id uuid.UUID) (Tokens, error) {

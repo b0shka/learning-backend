@@ -26,7 +26,7 @@ func NewEmailService(name, email, password, host string, port int) *EmailService
 	}
 }
 
-func (s *EmailService) SendEmail(config domain.VerifyEmailConfig, toEmail string) error {
+func (s *EmailService) SendEmail(config domain.SendEmailConfig, toEmail string) error {
 	e := email.NewEmail()
 
 	e.From = fmt.Sprintf("%s <%s>", s.Name, s.Email)
