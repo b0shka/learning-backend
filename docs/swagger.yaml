@@ -3,7 +3,7 @@ definitions:
   domain.User:
     properties:
       created_at:
-        type: integer
+        type: string
       email:
         type: string
       id:
@@ -15,7 +15,19 @@ definitions:
     required:
     - created_at
     - email
+    - id
     - username
+    type: object
+  domain.UserSignIn:
+    properties:
+      email:
+        type: string
+      secret_code:
+        minimum: 100000
+        type: integer
+    required:
+    - email
+    - secret_code
     type: object
   domain.UserUpdate:
     properties:
@@ -45,7 +57,14 @@ definitions:
       message:
         type: string
     type: object
-  http.tokenResponse:
+  http.userSendCodeRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  http.userSignInResponse:
     properties:
       access_token:
         type: string
@@ -55,24 +74,8 @@ definitions:
         type: string
       refresh_token_expites_at:
         type: string
-    type: object
-  http.userSendCodeRequest:
-    properties:
-      email:
-        type: string
-    required:
-    - email
-    type: object
-  http.userSignInRequest:
-    properties:
-      email:
-        type: string
-      secret_code:
-        minimum: 100000
-        type: integer
-    required:
-    - email
-    - secret_code
+      user:
+        $ref: '#/definitions/domain.User'
     type: object
 host: localhost:8080
 info:
@@ -201,14 +204,14 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/http.userSignInRequest'
+          $ref: '#/definitions/domain.UserSignIn'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/http.tokenResponse'
+            $ref: '#/definitions/http.userSignInResponse'
         "400":
           description: Bad Request
           schema:
@@ -267,7 +270,7 @@ paths:
       - application/json
       description: update user account
       parameters:
-      - description: user info
+      - description: user update info
         in: body
         name: input
         required: true

@@ -204,7 +204,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/http.userSignInRequest"
+                            "$ref": "#/definitions/domain.UserSignIn"
                         }
                     }
                 ],
@@ -212,7 +212,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/http.tokenResponse"
+                            "$ref": "#/definitions/http.userSignInResponse"
                         }
                     },
                     "400": {
@@ -314,7 +314,7 @@ const docTemplate = `{
                 "summary": "Update User",
                 "parameters": [
                     {
-                        "description": "user info",
+                        "description": "user update info",
                         "name": "input",
                         "in": "body",
                         "required": true,
@@ -364,11 +364,12 @@ const docTemplate = `{
             "required": [
                 "created_at",
                 "email",
+                "id",
                 "username"
             ],
             "properties": {
                 "created_at": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "email": {
                     "type": "string"
@@ -381,6 +382,22 @@ const docTemplate = `{
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "domain.UserSignIn": {
+            "type": "object",
+            "required": [
+                "email",
+                "secret_code"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "secret_code": {
+                    "type": "integer",
+                    "minimum": 100000
                 }
             }
         },
@@ -428,7 +445,18 @@ const docTemplate = `{
                 }
             }
         },
-        "http.tokenResponse": {
+        "http.userSendCodeRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.userSignInResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -442,33 +470,9 @@ const docTemplate = `{
                 },
                 "refresh_token_expites_at": {
                     "type": "string"
-                }
-            }
-        },
-        "http.userSendCodeRequest": {
-            "type": "object",
-            "required": [
-                "email"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                }
-            }
-        },
-        "http.userSignInRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "secret_code"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
                 },
-                "secret_code": {
-                    "type": "integer",
-                    "minimum": 100000
+                "user": {
+                    "$ref": "#/definitions/domain.User"
                 }
             }
         }

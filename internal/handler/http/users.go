@@ -76,7 +76,7 @@ type userSignInResponse struct {
 //	@Accept			json
 //	@Produce		json
 //	@Param			input	body		domain.UserSignIn	true	"sign in info"
-//	@Success		201		{object}	tokenResponse
+//	@Success		201		{object}	userSignInResponse
 //	@Failure		400,404	{object}	response
 //	@Failure		500		{object}	response
 //	@Failure		default	{object}	response
