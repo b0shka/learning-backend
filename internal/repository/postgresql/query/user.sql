@@ -18,9 +18,9 @@ WHERE email = $1 LIMIT 1;
 
 -- name: UpdateUser :exec
 UPDATE users SET
-    username = $2,
-    photo = $3
-WHERE id = $1;
+  username = sqlc.arg(username),
+  photo = COALESCE(sqlc.narg(photo), photo)
+WHERE id = sqlc.arg(id);
 
 -- name: DeleteUser :exec
 DELETE FROM users

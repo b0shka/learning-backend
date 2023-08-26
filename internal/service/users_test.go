@@ -13,8 +13,8 @@ import (
 	mock_repository "github.com/b0shka/backend/internal/repository/postgresql/mocks"
 	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
 	"github.com/b0shka/backend/internal/service"
+	mock_worker "github.com/b0shka/backend/internal/service/worker/mocks"
 	"github.com/b0shka/backend/pkg/auth"
-	"github.com/b0shka/backend/pkg/email"
 	"github.com/b0shka/backend/pkg/hash"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
@@ -25,17 +25,20 @@ import (
 var errInternalServErr = errors.New("test: internal server error")
 
 func mockUserService(t *testing.T) (*service.UsersService, *mock_repository.MockStore) {
-	mockCtl := gomock.NewController(t)
-	defer mockCtl.Finish()
+	repoCtl := gomock.NewController(t)
+	defer repoCtl.Finish()
 
-	repo := mock_repository.NewMockStore(mockCtl)
+	workerCtl := gomock.NewController(t)
+	defer workerCtl.Finish()
+
+	repo := mock_repository.NewMockStore(repoCtl)
+	worker := mock_worker.NewMockTaskDistributor(workerCtl)
 	userService := service.NewUsersService(
 		repo,
 		&hash.SHA256Hasher{},
 		&auth.JWTManager{},
-		email.EmailService{},
-		config.EmailConfig{},
 		config.AuthConfig{},
+		worker,
 	)
 
 	return userService, repo

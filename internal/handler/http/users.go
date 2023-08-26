@@ -110,7 +110,7 @@ func (h *Handler) userSignIn(c *gin.Context) {
 			ID:        user.ID,
 			Email:     user.Email,
 			Username:  user.Username,
-			Photo:     user.Photo,
+			Photo:     user.Photo.String,
 			CreatedAt: user.CreatedAt,
 		},
 	})
@@ -208,7 +208,7 @@ func (h *Handler) getUserById(c *gin.Context) {
 		ID:        user.ID,
 		Email:     user.Email,
 		Username:  user.Username,
-		Photo:     user.Photo,
+		Photo:     user.Photo.String,
 		CreatedAt: user.CreatedAt,
 	})
 }

@@ -17,7 +17,7 @@ smtp:
 email:
   templates:
     verify_email: "./templates/verify_email.html"
-    signin_account: "./templates/signin_account.html"
+    login_notification: "./templates/login_notification.html"
   subjects:
     verify_email: "Код подтверждения для входа в аккаунт"
-    signin_account: "Кто-то вошел в ваш аккаунт"
+    login_notification: "Кто-то вошел в ваш аккаунт"

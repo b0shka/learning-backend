@@ -1,8 +1,10 @@
 package email
 
 import (
+	"bytes"
 	"fmt"
 	"net/smtp"
+	"text/template"
 
 	"github.com/b0shka/backend/internal/domain"
 	"github.com/jordan-wright/email"
@@ -26,7 +28,23 @@ func NewEmailService(name, email, password, host string, port int) *EmailService
 	}
 }
 
-func (s *EmailService) SendEmail(config domain.SendEmailConfig, toEmail string) error {
+func (s *EmailService) SendEmailMessage(toEmail, templateFile, subject string, contentData any) error {
+	var content bytes.Buffer
+	contentHtml, err := template.ParseFiles(templateFile)
+	if err != nil {
+		return err
+	}
+
+	err = contentHtml.Execute(&content, contentData)
+	if err != nil {
+		return err
+	}
+
+	config := domain.SendEmailConfig{
+		Subject: subject,
+		Content: content.String(),
+	}
+
 	e := email.NewEmail()
 
 	e.From = fmt.Sprintf("%s <%s>", s.Name, s.Email)

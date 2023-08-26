@@ -14,6 +14,7 @@ type (
 	Config struct {
 		Mongo    MongoConfig
 		Postgres PostgresConfig
+		Redis    RedisConfig
 		HTTP     HTTPConfig  `mapstructure:"http"`
 		Auth     AuthConfig  `mapstructure:"auth"`
 		SMTP     SMTPConfig  `mapstructure:"smtp"`
@@ -26,13 +27,12 @@ type (
 	}
 
 	PostgresConfig struct {
-		User         string `envconfig:"POSTGRESQL_USER"`
-		Password     string `envconfig:"POSTGRESQL_PASSWORD"`
-		Host         string `envconfig:"POSTGRESQL_HOST"`
-		Port         string `envconfig:"POSTGRESQL_PORT"`
-		DBName       string `envconfig:"POSTGRESQL_DB_NAME"`
 		URL          string `envconfig:"POSTGRESQL_URL"`
 		MigrationURL string `envconfig:"MIGRATION_URL"`
+	}
+
+	RedisConfig struct {
+		Address string `envconfig:"REDIS_ADDRESS"`
 	}
 
 	EmailConfig struct {
@@ -44,13 +44,13 @@ type (
 	}
 
 	EmailTemplates struct {
-		Verify string `mapstructure:"verify_email"`
-		SignIn string `mapstructure:"signin_account"`
+		VerifyEmail       string `mapstructure:"verify_email"`
+		LoginNotification string `mapstructure:"login_notification"`
 	}
 
 	EmailSubjects struct {
-		Verify string `mapstructure:"verify_email"`
-		SignIn string `mapstructure:"signin_account"`
+		VerifyEmail       string `mapstructure:"verify_email"`
+		LoginNotification string `mapstructure:"login_notification"`
 	}
 
 	AuthConfig struct {

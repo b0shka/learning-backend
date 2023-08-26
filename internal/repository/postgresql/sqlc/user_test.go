@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"testing"
 	"time"
@@ -71,7 +72,10 @@ func TestRepository_UpdateUser(t *testing.T) {
 	arg := UpdateUserParams{
 		ID:       user.ID,
 		Username: utils.RandomString(10),
-		Photo:    fmt.Sprintf("https://%s.png", utils.RandomString(10)),
+		Photo: sql.NullString{
+			String: fmt.Sprintf("https://%s.png", utils.RandomString(7)),
+			Valid:  true,
+		},
 	}
 
 	err := testQueries.UpdateUser(context.Background(), arg)

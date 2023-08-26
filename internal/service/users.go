@@ -1,49 +1,45 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"errors"
-	"html/template"
 	"strconv"
 	"time"
 
 	"github.com/b0shka/backend/internal/config"
 	"github.com/b0shka/backend/internal/domain"
 	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
+	"github.com/b0shka/backend/internal/service/worker"
 	"github.com/b0shka/backend/pkg/auth"
-	"github.com/b0shka/backend/pkg/email"
 	"github.com/b0shka/backend/pkg/hash"
 	"github.com/b0shka/backend/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 )
 
 type UsersService struct {
-	repo         repository.Store
-	hasher       hash.Hasher
-	tokenManager auth.Manager
-	emailService email.EmailService
-	emailConfig  config.EmailConfig
-	authConfig   config.AuthConfig
+	repo            repository.Store
+	hasher          hash.Hasher
+	tokenManager    auth.Manager
+	authConfig      config.AuthConfig
+	taskDistributor worker.TaskDistributor
 }
 
 func NewUsersService(
 	repo repository.Store,
 	hasher hash.Hasher,
 	tokenManager auth.Manager,
-	emailService email.EmailService,
-	emailConfig config.EmailConfig,
 	authConfig config.AuthConfig,
+	taskDistributor worker.TaskDistributor,
 ) *UsersService {
 	return &UsersService{
-		repo:         repo,
-		hasher:       hasher,
-		tokenManager: tokenManager,
-		emailService: emailService,
-		emailConfig:  emailConfig,
-		authConfig:   authConfig,
+		repo:            repo,
+		hasher:          hasher,
+		tokenManager:    tokenManager,
+		authConfig:      authConfig,
+		taskDistributor: taskDistributor,
 	}
 }
 
@@ -51,19 +47,6 @@ func (s *UsersService) SendCodeEmail(ctx context.Context, email string) error {
 	secretCode := utils.RandomInt(100000, 999999)
 	secretCodeStr := strconv.Itoa(int(secretCode))
 	secretCodeHash, err := s.hasher.HashCode(secretCodeStr)
-	if err != nil {
-		return err
-	}
-
-	err = s.sendEmailMessage(
-		email,
-		s.emailConfig.Templates.Verify,
-		s.emailConfig.Subjects.Verify,
-		domain.UserSignIn{
-			Email:      email,
-			SecretCode: secretCode,
-		},
-	)
 	if err != nil {
 		return err
 	}
@@ -86,6 +69,20 @@ func (s *UsersService) SendCodeEmail(ctx context.Context, email string) error {
 		} else {
 			return err
 		}
+	}
+
+	taskPayload := &worker.PayloadSendVerifyEmail{
+		Email:      email,
+		SecretCode: secretCode,
+	}
+	opts := []asynq.Option{
+		asynq.MaxRetry(10),
+		// asynq.ProcessIn(3 * time.Second),
+		asynq.Queue(worker.QueueCritical),
+	}
+	err = s.taskDistributor.DistributeTaskSendVerifyEmail(ctx, taskPayload, opts...)
+	if err != nil {
+		return err
 	}
 
 	verifyEmailID, err := uuid.NewRandom()
@@ -143,41 +140,22 @@ func (s *UsersService) SignIn(ctx *gin.Context, inp domain.UserSignIn) (reposito
 		return repository.User{}, Tokens{}, err
 	}
 
-	err = s.sendEmailMessage(
-		inp.Email,
-		s.emailConfig.Templates.SignIn,
-		s.emailConfig.Subjects.SignIn,
-		domain.UserMetadata{
-			Email:     inp.Email,
-			UserAgent: ctx.Request.UserAgent(),
-			ClientIp:  ctx.ClientIP(),
-		},
-	)
-
-	return user, tokens, err
-}
-
-func (s *UsersService) sendEmailMessage(email, templateFile, subject string, contentData any) error {
-	var content bytes.Buffer
-	contentHtml, err := template.ParseFiles(templateFile)
+	taskPayload := &worker.PayloadSendLoginNotification{
+		Email:     inp.Email,
+		UserAgent: ctx.Request.UserAgent(),
+		ClientIp:  ctx.ClientIP(),
+	}
+	opts := []asynq.Option{
+		asynq.MaxRetry(10),
+		asynq.ProcessIn(5 * time.Second),
+		asynq.Queue(worker.QueueDefault),
+	}
+	err = s.taskDistributor.DistributeTaskSendLoginNotification(ctx, taskPayload, opts...)
 	if err != nil {
-		return err
+		return repository.User{}, Tokens{}, err
 	}
 
-	err = contentHtml.Execute(&content, contentData)
-	if err != nil {
-		return err
-	}
-
-	err = s.emailService.SendEmail(domain.SendEmailConfig{
-		Subject: subject,
-		Content: content.String(),
-	}, email)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return user, tokens, nil
 }
 
 func (s *UsersService) createSession(ctx *gin.Context, id uuid.UUID) (Tokens, error) {
@@ -274,7 +252,10 @@ func (s *UsersService) Update(ctx context.Context, id uuid.UUID, user domain.Use
 	arg := repository.UpdateUserParams{
 		ID:       id,
 		Username: user.Username,
-		Photo:    user.Photo,
+		Photo: sql.NullString{
+			String: user.Photo,
+			Valid:  true,
+		},
 	}
 	return s.repo.UpdateUser(ctx, arg)
 }

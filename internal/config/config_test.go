@@ -11,13 +11,9 @@ func TestInitConfig(t *testing.T) {
 	type env struct {
 		mongoURI             string
 		mongoDBName          string
-		postgresqlUser       string
-		postgresqlPassword   string
-		postgresqlHost       string
-		postgresqlPort       string
-		postgresqlDBName     string
 		postgresqlURL        string
 		migrationURL         string
+		redisAddress         string
 		emailServiceName     string
 		emailServiceAddress  string
 		emailServicePassword string
@@ -33,13 +29,9 @@ func TestInitConfig(t *testing.T) {
 	setEnv := func(env env) {
 		os.Setenv("MONGO_URI", env.mongoURI)
 		os.Setenv("MONGO_DB_NAME", env.mongoDBName)
-		os.Setenv("POSTGRESQL_USER", env.postgresqlUser)
-		os.Setenv("POSTGRESQL_PASSWORD", env.postgresqlPassword)
-		os.Setenv("POSTGRESQL_HOST", env.postgresqlHost)
-		os.Setenv("POSTGRESQL_PORT", env.postgresqlPort)
-		os.Setenv("POSTGRESQL_DB_NAME", env.postgresqlDBName)
 		os.Setenv("POSTGRESQL_URL", env.postgresqlURL)
 		os.Setenv("MIGRATION_URL", env.migrationURL)
+		os.Setenv("REDIS_ADDRESS", env.redisAddress)
 		os.Setenv("EMAIL_SERVICE_NAME", env.emailServiceName)
 		os.Setenv("EMAIL_SERVICE_ADDRESS", env.emailServiceAddress)
 		os.Setenv("EMAIL_SERVICE_PASSWORD", env.emailServicePassword)
@@ -60,13 +52,9 @@ func TestInitConfig(t *testing.T) {
 				env: env{
 					mongoURI:             "mongodb://localhost:27017",
 					mongoDBName:          "service",
-					postgresqlUser:       "root",
-					postgresqlPassword:   "qwerty",
-					postgresqlHost:       "localhost",
-					postgresqlPort:       "5432",
-					postgresqlDBName:     "service",
 					postgresqlURL:        "postgresql://root:qwerty@localhost:5432/service?sslmode=disable",
 					migrationURL:         "file://internal/repository/postgresql/migration",
+					redisAddress:         "0.0.0.0:6379",
 					emailServiceName:     "Service",
 					emailServiceAddress:  "service@gmail.com",
 					emailServicePassword: "qwerty123",
@@ -80,25 +68,23 @@ func TestInitConfig(t *testing.T) {
 					DBName: "service",
 				},
 				Postgres: PostgresConfig{
-					User:         "root",
-					Password:     "qwerty",
-					Host:         "localhost",
-					Port:         "5432",
-					DBName:       "service",
 					URL:          "postgresql://root:qwerty@localhost:5432/service?sslmode=disable",
 					MigrationURL: "file://internal/repository/postgresql/migration",
+				},
+				Redis: RedisConfig{
+					Address: "0.0.0.0:6379",
 				},
 				Email: EmailConfig{
 					ServiceName:     "Service",
 					ServiceAddress:  "service@gmail.com",
 					ServicePassword: "qwerty123",
 					Templates: EmailTemplates{
-						Verify: "./templates/verify_email.html",
-						SignIn: "./templates/signin_account.html",
+						VerifyEmail:       "./templates/verify_email.html",
+						LoginNotification: "./templates/login_notification.html",
 					},
 					Subjects: EmailSubjects{
-						Verify: "Код подтверждения для входа в аккаунт",
-						SignIn: "Кто-то вошел в ваш аккаунт",
+						VerifyEmail:       "Код подтверждения для входа в аккаунт",
+						LoginNotification: "Кто-то вошел в ваш аккаунт",
 					},
 				},
 				Auth: AuthConfig{

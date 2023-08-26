@@ -7,6 +7,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 )
@@ -23,10 +24,10 @@ INSERT INTO users (
 `
 
 type CreateUserParams struct {
-	ID       uuid.UUID `json:"id"`
-	Email    string    `json:"email"`
-	Username string    `json:"username"`
-	Photo    string    `json:"photo"`
+	ID       uuid.UUID      `json:"id"`
+	Email    string         `json:"email"`
+	Username string         `json:"username"`
+	Photo    sql.NullString `json:"photo"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -95,18 +96,18 @@ func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (User, error) {
 
 const updateUser = `-- name: UpdateUser :exec
 UPDATE users SET
-    username = $2,
-    photo = $3
-WHERE id = $1
+  username = $1,
+  photo = COALESCE($2, photo)
+WHERE id = $3
 `
 
 type UpdateUserParams struct {
-	ID       uuid.UUID `json:"id"`
-	Username string    `json:"username"`
-	Photo    string    `json:"photo"`
+	Username string         `json:"username"`
+	Photo    sql.NullString `json:"photo"`
+	ID       uuid.UUID      `json:"id"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
-	_, err := q.db.ExecContext(ctx, updateUser, arg.ID, arg.Username, arg.Photo)
+	_, err := q.db.ExecContext(ctx, updateUser, arg.Username, arg.Photo, arg.ID)
 	return err
 }

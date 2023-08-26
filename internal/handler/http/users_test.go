@@ -69,10 +69,13 @@ func randomUser(t *testing.T) (user repository.User) {
 	require.NoError(t, err)
 
 	user = repository.User{
-		ID:        id,
-		Email:     utils.RandomEmail(),
-		Username:  utils.RandomString(10),
-		Photo:     fmt.Sprintf("https://%s", utils.RandomString(7)),
+		ID:       id,
+		Email:    utils.RandomEmail(),
+		Username: utils.RandomString(10),
+		Photo: sql.NullString{
+			String: fmt.Sprintf("https://%s.png", utils.RandomString(7)),
+			Valid:  true,
+		},
 		CreatedAt: time.Now(),
 	}
 	return user
@@ -178,10 +181,13 @@ func TestHandler_userSignIn(t *testing.T) {
 	}
 
 	user := repository.User{
-		ID:        uuid.New(),
-		Email:     utils.RandomEmail(),
-		Username:  utils.RandomString(10),
-		Photo:     fmt.Sprintf("https://%s", utils.RandomString(7)),
+		ID:       uuid.New(),
+		Email:    utils.RandomEmail(),
+		Username: utils.RandomString(10),
+		Photo: sql.NullString{
+			String: fmt.Sprintf("https://%s.png", utils.RandomString(7)),
+			Valid:  true,
+		},
 		CreatedAt: time.Now(),
 	}
 
@@ -615,7 +621,7 @@ func TestHandler_getUserById(t *testing.T) {
 					ID:        user.ID,
 					Email:     user.Email,
 					Username:  user.Username,
-					Photo:     user.Photo,
+					Photo:     user.Photo.String,
 					CreatedAt: user.CreatedAt,
 				})
 			},

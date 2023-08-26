@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,11 +22,11 @@ type Session struct {
 }
 
 type User struct {
-	ID        uuid.UUID `json:"id"`
-	Email     string    `json:"email"`
-	Username  string    `json:"username"`
-	Photo     string    `json:"photo"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        uuid.UUID      `json:"id"`
+	Email     string         `json:"email"`
+	Username  string         `json:"username"`
+	Photo     sql.NullString `json:"photo"`
+	CreatedAt time.Time      `json:"created_at"`
 }
 
 type VerifyEmail struct {

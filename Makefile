@@ -2,12 +2,13 @@ PROGRAM_NAME = main
 REGISTRY = b0shka
 API_IMAGE = backend
 POSTGRES_IMAGE = postgres
+REDIS_IMAGE=redis
 TAG = latest
 NETWOTK=backend-network
 DB_URL=postgresql://root:qwerty@localhost:5432/service?sslmode=disable
 MIGRATION_URL=internal/repository/postgresql/migration
 
-.PHONY: build start test lint swag mock network docker-build docker-run docker-push docker-run-postgres migrateup migratedown sqlc
+.PHONY: build start test lint swag mock network docker-build docker-run docker-push docker-run-postgres docker-run-redis migrateup migratedown sqlc
 .DEFAULT_GOAL := start
 
 build:
@@ -39,6 +40,7 @@ mock:
 	mockgen -source=internal/repository/mongodb/repository.go -destination=internal/repository/mongodb/mocks/mock_repository.go
 	mockgen -destination=internal/repository/postgresql/mocks/mock_repository.go github.com/b0shka/backend/internal/repository/postgresql/sqlc Store
 	mockgen -source=internal/service/service.go -destination=internal/service/mocks/mock_service.go
+	mockgen -destination internal/service/worker/mocks/mock_worker.go github.com/b0shka/backend/internal/service/worker TaskDistributor
 
 network:
 	docker network create ${NETWOTK}
@@ -54,6 +56,9 @@ docker-push:
 
 docker-run-postgres:
 	docker run --name ${POSTGRES_IMAGE} --network ${NETWOTK} -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=qwerty -e POSTGRES_DB=service -d postgres:15-alpine
+
+docker-run-redis:
+	docker run --name ${REDIS_IMAGE} --network ${NETWOTK} -p 6379:6379 -d redis:7-alpine
 
 migrateup:
 	migrate -path ${MIGRATION_URL} -database ${DB_URL} -verbose up
