@@ -86,8 +86,7 @@ func Run(configPath string) {
 		Addr: cfg.Redis.Address,
 	}
 	taskDistributor := worker.NewRedisTaskDistributor(redisOpt)
-
-	go runTaskProcessor(redisOpt, repos, cfg)
+	go runTaskProcessor(redisOpt, repos, hasher, cfg)
 
 	services := service.NewServices(service.Deps{
 		Repos:           repos,
@@ -148,6 +147,7 @@ func runDBMigration(migrationURL, dbSource string) error {
 func runTaskProcessor(
 	redisOpt asynq.RedisClientOpt,
 	store repository.Store,
+	hasher hash.Hasher,
 	cfg *config.Config,
 ) {
 	emailService := email.NewEmailService(
@@ -158,7 +158,14 @@ func runTaskProcessor(
 		cfg.SMTP.Port,
 	)
 
-	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, store, emailService, cfg.Email)
+	taskProcessor := worker.NewRedisTaskProcessor(
+		redisOpt,
+		store,
+		hasher,
+		emailService,
+		cfg.Email,
+		cfg.Auth,
+	)
 	logger.Info("start task processor")
 
 	err := taskProcessor.Start()

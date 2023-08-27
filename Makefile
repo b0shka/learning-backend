@@ -21,7 +21,7 @@ start: build
 test:
 #	make docker-run-postgres
 #	make migrateup
-	GIN_MODE=release go test --short -coverprofile=cover.out -v ./...
+	GIN_MODE=release go test --short -coverprofile=cover.out -v -count=1 ./...
 	make test.coverage
 #	make migratedown
 #	docker stop ${POSTGRES_IMAGE}
@@ -59,6 +59,9 @@ docker-run-postgres:
 
 docker-run-redis:
 	docker run --name ${REDIS_IMAGE} --network ${NETWOTK} -p 6379:6379 -d redis:7-alpine
+
+create-migration:
+	migrate create -ext sql -dir ${MIGRATION_URL} -seq ${name}
 
 migrateup:
 	migrate -path ${MIGRATION_URL} -database ${DB_URL} -verbose up

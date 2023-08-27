@@ -4,8 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"time"
 
+	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
 	"github.com/b0shka/backend/pkg/logger"
+	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 )
 
@@ -44,7 +48,30 @@ func (processor *RedisTaskProcessor) ProcessTaskSendVerifyEmail(ctx context.Cont
 		return fmt.Errorf("failed to unmarshal payload: %w", asynq.SkipRetry)
 	}
 
-	err := processor.emailService.SendEmailMessage(
+	secretCodeStr := strconv.Itoa(int(payload.SecretCode))
+	secretCodeHash, err := processor.hasher.HashCode(secretCodeStr)
+	if err != nil {
+		return err
+	}
+
+	verifyEmailID, err := uuid.NewRandom()
+	if err != nil {
+		return err
+	}
+
+	verifyEmail := repository.CreateVerifyEmailParams{
+		ID:         verifyEmailID,
+		Email:      payload.Email,
+		SecretCode: secretCodeHash,
+		ExpiresAt:  time.Now().Add(processor.authConfig.SercetCodeLifetime),
+	}
+
+	_, err = processor.store.CreateVerifyEmail(ctx, verifyEmail)
+	if err != nil {
+		return err
+	}
+
+	err = processor.emailService.SendEmailMessage(
 		payload.Email,
 		processor.emailConfig.Templates.VerifyEmail,
 		processor.emailConfig.Subjects.VerifyEmail,

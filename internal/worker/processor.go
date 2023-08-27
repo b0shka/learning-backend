@@ -2,10 +2,13 @@ package worker
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/b0shka/backend/internal/config"
 	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
 	"github.com/b0shka/backend/pkg/email"
+	"github.com/b0shka/backend/pkg/hash"
+	"github.com/b0shka/backend/pkg/logger"
 	"github.com/hibiken/asynq"
 )
 
@@ -23,15 +26,19 @@ type TaskProcessor interface {
 type RedisTaskProcessor struct {
 	server       *asynq.Server
 	store        repository.Store
+	hasher       hash.Hasher
 	emailService *email.EmailService
 	emailConfig  config.EmailConfig
+	authConfig   config.AuthConfig
 }
 
 func NewRedisTaskProcessor(
 	redisOpt asynq.RedisClientOpt,
 	store repository.Store,
+	hasher hash.Hasher,
 	emailService *email.EmailService,
 	emailConfig config.EmailConfig,
+	authConfig config.AuthConfig,
 ) TaskProcessor {
 	// redis.SetLogger(logger)
 
@@ -42,10 +49,16 @@ func NewRedisTaskProcessor(
 				QueueCritical: 10,
 				QueueDefault:  5,
 			},
-			// ErrorHandler: asynq.ErrorHandlerFunc(func(ctx context.Context, task *asynq.Task, err error) {
-			// 	log.Error().Err(err).Str("type", task.Type()).
-			// 		Bytes("payload", task.Payload()).Msg("process task failed")
-			// }),
+			ErrorHandler: asynq.ErrorHandlerFunc(func(ctx context.Context, task *asynq.Task, err error) {
+				var data map[string]interface{}
+				error := json.Unmarshal(task.Payload(), &data)
+				if error != nil {
+					logger.Errorf("Error decode payload: %s", error.Error())
+					return
+				}
+
+				logger.Errorf("process task failed: type - %s, payload - %v, err - %s", task.Type(), data, err.Error())
+			}),
 			// Logger: logger,
 		},
 	)
@@ -53,8 +66,10 @@ func NewRedisTaskProcessor(
 	return &RedisTaskProcessor{
 		server:       server,
 		store:        store,
+		hasher:       hasher,
 		emailService: emailService,
 		emailConfig:  emailConfig,
+		authConfig:   authConfig,
 	}
 }
 

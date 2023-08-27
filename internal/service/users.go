@@ -44,14 +44,7 @@ func NewUsersService(
 }
 
 func (s *UsersService) SendCodeEmail(ctx context.Context, email string) error {
-	secretCode := utils.RandomInt(100000, 999999)
-	secretCodeStr := strconv.Itoa(int(secretCode))
-	secretCodeHash, err := s.hasher.HashCode(secretCodeStr)
-	if err != nil {
-		return err
-	}
-
-	user, err := s.repo.GetUserByEmail(ctx, email)
+	_, err := s.repo.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			userID, err := uuid.NewRandom()
@@ -59,7 +52,7 @@ func (s *UsersService) SendCodeEmail(ctx context.Context, email string) error {
 				return err
 			}
 
-			user, err = s.repo.CreateUser(ctx, repository.CreateUserParams{
+			_, err = s.repo.CreateUser(ctx, repository.CreateUserParams{
 				ID:    userID,
 				Email: email,
 			})
@@ -71,33 +64,17 @@ func (s *UsersService) SendCodeEmail(ctx context.Context, email string) error {
 		}
 	}
 
+	secretCode := utils.RandomInt(100000, 999999)
 	taskPayload := &worker.PayloadSendVerifyEmail{
 		Email:      email,
 		SecretCode: secretCode,
 	}
 	opts := []asynq.Option{
 		asynq.MaxRetry(10),
-		// asynq.ProcessIn(3 * time.Second),
+		asynq.ProcessIn(time.Second),
 		asynq.Queue(worker.QueueCritical),
 	}
 	err = s.taskDistributor.DistributeTaskSendVerifyEmail(ctx, taskPayload, opts...)
-	if err != nil {
-		return err
-	}
-
-	verifyEmailID, err := uuid.NewRandom()
-	if err != nil {
-		return err
-	}
-
-	verifyEmail := repository.CreateVerifyEmailParams{
-		ID:         verifyEmailID,
-		Email:      user.Email,
-		SecretCode: secretCodeHash,
-		ExpiresAt:  time.Now().Add(s.authConfig.SercetCodeLifetime),
-	}
-
-	_, err = s.repo.CreateVerifyEmail(ctx, verifyEmail)
 	return err
 }
 
