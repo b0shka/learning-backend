@@ -1,5 +1,5 @@
 PROGRAM_NAME = main
-REGISTRY = b0shka
+REGISTRY = service
 API_IMAGE = backend
 POSTGRES_IMAGE = postgres
 REDIS_IMAGE=redis
@@ -46,13 +46,13 @@ network:
 	docker network create ${NETWOTK}
 
 docker-build:
-	docker build -f Dockerfile -t ${REGISTRY}/${API_IMAGE}:${TAG} .
+	docker build -f Dockerfile -t cr.selcloud.ru/${REGISTRY}/${API_IMAGE}:${TAG} .
 
 docker-run:
-	docker run --name ${API_IMAGE} --network ${NETWOTK} -p 8080:8080 -e GIN_MODE=release -e APP_ENV=local --rm -d ${REGISTRY}/${API_IMAGE}:${TAG}
+	docker run --name ${API_IMAGE} --network ${NETWOTK} -p 8080:8080 -e GIN_MODE=release -e APP_ENV=local --rm -d cr.selcloud.ru/${REGISTRY}/${API_IMAGE}:${TAG}
 
 docker-push:
-	docker push ${REGISTRY}/${API_IMAGE}:${TAG}
+	docker push cr.selcloud.ru/${REGISTRY}/${API_IMAGE}:${TAG}
 
 docker-run-postgres:
 	docker run --name ${POSTGRES_IMAGE} --network ${NETWOTK} -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=qwerty -e POSTGRES_DB=service -d postgres:15-alpine
