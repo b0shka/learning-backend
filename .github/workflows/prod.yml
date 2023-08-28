@@ -68,9 +68,6 @@ jobs:
           username: ${{ secrets.SELECTEL_TOKEN_NAME }}
           password: ${{ secrets.SELECTEL_TOKEN_PASSWORD }}
 
-      # - name: Login to Docker Hub
-      #   run: echo ${{ secrets.SELECTEL_TOKEN_NAME }} | docker login cr.selcloud.ru -u ${{ secrets.SELECTEL_TOKEN_PASSWORD }} --password-stdin
-
       - name: Push API image to Docker Hub
         run: docker push $(echo $REGISTRY)/$(echo $API_IMAGE):$(echo $TAG)
       
