@@ -22,11 +22,8 @@ Create `.env` file in root directory and add following values:
 MONDO_URI=mongodb://mongodb:27017
 MONGO_DB_NAME=<db name>
 
-POSTGRESQL_USER=<db user>
-POSTGRESQL_PASSWORD=<db password>
-POSTGRESQL_HOST=localhost
-POSTGRESQL_PORT=5432
-POSTGRESQL_DB_NAME=<db name>
+POSTGRESQL_URL=postgresql://<user>:<password>@<host>:<port>/<db name>?sslmode=disable
+MIGRATION_URL=file://<path to folder with migrate files>
 
 EMAIL_SERVICE_NAME=<name complany>
 EMAIL_SERVICE_ADDRESS=<email address>
