@@ -57,14 +57,6 @@ func Run(configPath string) {
 		return
 	}
 
-	// mongoClient, err := mongodb.NewClient(cfg.Mongo.URI)
-	// if err != nil {
-	// 	logger.Errorf("cannot connect to database: %s", err)
-	// 	return
-	// }
-	// db := mongoClient.Database(cfg.Mongo.DBName)
-	// repos := repository.NewRepositories(db)
-
 	connPool, err := pgxpool.New(context.Background(), cfg.Postgres.URL)
 	if err != nil {
 		logger.Errorf("cannot connect to database: %s", err)
@@ -117,10 +109,6 @@ func Run(configPath string) {
 		logger.Errorf("failed to stop server: %v", err)
 	}
 	logger.Info("Server stoped")
-
-	// if err := mongoClient.Disconnect(context.Background()); err != nil {
-	// 	logger.Error(err.Error())
-	// }
 
 	connPool.Close()
 	logger.Info("Database disconnected")

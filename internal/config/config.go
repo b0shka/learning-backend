@@ -12,18 +12,12 @@ import (
 
 type (
 	Config struct {
-		Mongo    MongoConfig
 		Postgres PostgresConfig
 		Redis    RedisConfig
 		HTTP     HTTPConfig  `mapstructure:"http"`
 		Auth     AuthConfig  `mapstructure:"auth"`
 		SMTP     SMTPConfig  `mapstructure:"smtp"`
 		Email    EmailConfig `mapstructure:"email"`
-	}
-
-	MongoConfig struct {
-		URI    string `envconfig:"MONGO_URI"`
-		DBName string `envconfig:"MONGO_DB_NAME"`
 	}
 
 	PostgresConfig struct {

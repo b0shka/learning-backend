@@ -27,8 +27,6 @@ func TestInitConfig(t *testing.T) {
 	}
 
 	setEnv := func(env env) {
-		os.Setenv("MONGO_URI", env.mongoURI)
-		os.Setenv("MONGO_DB_NAME", env.mongoDBName)
 		os.Setenv("POSTGRESQL_URL", env.postgresqlURL)
 		os.Setenv("MIGRATION_URL", env.migrationURL)
 		os.Setenv("REDIS_ADDRESS", env.redisAddress)
@@ -50,8 +48,6 @@ func TestInitConfig(t *testing.T) {
 			args: args{
 				path: "fixtures",
 				env: env{
-					mongoURI:             "mongodb://localhost:27017",
-					mongoDBName:          "service",
 					postgresqlURL:        "postgresql://root:qwerty@localhost:5432/service?sslmode=disable",
 					migrationURL:         "file://internal/repository/postgresql/migration",
 					redisAddress:         "0.0.0.0:6379",
@@ -63,10 +59,6 @@ func TestInitConfig(t *testing.T) {
 				},
 			},
 			want: &Config{
-				Mongo: MongoConfig{
-					URI:    "mongodb://localhost:27017",
-					DBName: "service",
-				},
 				Postgres: PostgresConfig{
 					URL:          "postgresql://root:qwerty@localhost:5432/service?sslmode=disable",
 					MigrationURL: "file://internal/repository/postgresql/migration",
