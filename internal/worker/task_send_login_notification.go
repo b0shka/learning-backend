@@ -15,6 +15,7 @@ type PayloadSendLoginNotification struct {
 	Email     string `json:"email"`
 	UserAgent string `json:"user_agent"`
 	ClientIp  string `json:"client_ip"`
+	Time      string `json:"time"`
 }
 
 func (distributor *RedisTaskDistributor) DistributeTaskSendLoginNotification(

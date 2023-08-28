@@ -19,6 +19,10 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const (
+	formatTimeLayout = "Jan _2, 2006 15:04:05 (MST)"
+)
+
 type UsersService struct {
 	repo            repository.Store
 	hasher          hash.Hasher
@@ -121,6 +125,7 @@ func (s *UsersService) SignIn(ctx *gin.Context, inp domain.UserSignIn) (reposito
 		Email:     inp.Email,
 		UserAgent: ctx.Request.UserAgent(),
 		ClientIp:  ctx.ClientIP(),
+		Time:      time.Now().Format(formatTimeLayout),
 	}
 	opts := []asynq.Option{
 		asynq.MaxRetry(10),

@@ -84,7 +84,7 @@ func TestInitConfig(t *testing.T) {
 					},
 					Subjects: EmailSubjects{
 						VerifyEmail:       "Код подтверждения для входа в аккаунт",
-						LoginNotification: "Кто-то вошел в ваш аккаунт",
+						LoginNotification: "Уведомление о входе в аккаунт",
 					},
 				},
 				Auth: AuthConfig{

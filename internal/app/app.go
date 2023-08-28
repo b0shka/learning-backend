@@ -122,11 +122,8 @@ func Run(configPath string) {
 	// 	logger.Error(err.Error())
 	// }
 
-	// if err := db.Close(); err != nil {
-	// 	logger.Error(err.Error())
-	// }
-
-	// logger.Info("Database disconnected")
+	connPool.Close()
+	logger.Info("Database disconnected")
 }
 
 func runDBMigration(migrationURL, dbSource string) error {
