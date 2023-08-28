@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/b0shka/backend/internal/domain"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 )
 
