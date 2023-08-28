@@ -2,13 +2,13 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/b0shka/backend/pkg/utils"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,7 +22,7 @@ func createRandomUser(t *testing.T) User {
 		Username: utils.RandomString(10),
 	}
 
-	user, err := testQueries.CreateUser(context.Background(), arg)
+	user, err := testStore.CreateUser(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, user)
 
@@ -42,7 +42,7 @@ func TestRepository_CreateUser(t *testing.T) {
 
 func TestRepository_GetUserById(t *testing.T) {
 	user1 := createRandomUser(t)
-	user2, err := testQueries.GetUserById(context.Background(), user1.ID)
+	user2, err := testStore.GetUserById(context.Background(), user1.ID)
 	require.NoError(t, err)
 	require.NotEmpty(t, user2)
 
@@ -55,7 +55,7 @@ func TestRepository_GetUserById(t *testing.T) {
 
 func TestRepository_GetUserByEmail(t *testing.T) {
 	user1 := createRandomUser(t)
-	user2, err := testQueries.GetUserByEmail(context.Background(), user1.Email)
+	user2, err := testStore.GetUserByEmail(context.Background(), user1.Email)
 	require.NoError(t, err)
 	require.NotEmpty(t, user2)
 
@@ -72,18 +72,18 @@ func TestRepository_UpdateUser(t *testing.T) {
 	arg := UpdateUserParams{
 		ID:       user.ID,
 		Username: utils.RandomString(10),
-		Photo: sql.NullString{
+		Photo: pgtype.Text{
 			String: fmt.Sprintf("https://%s.png", utils.RandomString(7)),
 			Valid:  true,
 		},
 	}
 
-	err := testQueries.UpdateUser(context.Background(), arg)
+	err := testStore.UpdateUser(context.Background(), arg)
 	require.NoError(t, err)
 }
 
 func TestRepository_DeleteUser(t *testing.T) {
 	user := createRandomUser(t)
-	err := testQueries.DeleteUser(context.Background(), user.ID)
+	err := testStore.DeleteUser(context.Background(), user.ID)
 	require.NoError(t, err)
 }

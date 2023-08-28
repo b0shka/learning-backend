@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"strconv"
 	"time"
@@ -17,6 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type UsersService struct {
@@ -46,7 +46,7 @@ func NewUsersService(
 func (s *UsersService) SendCodeEmail(ctx context.Context, email string) error {
 	_, err := s.repo.GetUserByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, repository.ErrRecordNotFound) {
 			userID, err := uuid.NewRandom()
 			if err != nil {
 				return err
@@ -92,7 +92,7 @@ func (s *UsersService) SignIn(ctx *gin.Context, inp domain.UserSignIn) (reposito
 
 	verifyEmail, err := s.repo.GetVerifyEmail(ctx, arg)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, repository.ErrRecordNotFound) {
 			return repository.User{}, Tokens{}, domain.ErrSecretCodeInvalid
 		}
 		return repository.User{}, Tokens{}, err
@@ -229,7 +229,7 @@ func (s *UsersService) Update(ctx context.Context, id uuid.UUID, user domain.Use
 	arg := repository.UpdateUserParams{
 		ID:       id,
 		Username: user.Username,
-		Photo: sql.NullString{
+		Photo: pgtype.Text{
 			String: user.Photo,
 			Valid:  true,
 		},

@@ -2,7 +2,6 @@ package service_test
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"net/http/httptest"
 	"testing"
@@ -100,7 +99,7 @@ func TestUsersService_SignInErrCodeInvalid(t *testing.T) {
 	ctx, _ := gin.CreateTestContext(w)
 
 	userRepo.EXPECT().GetVerifyEmail(ctx, gomock.Any()).
-		Return(repository.VerifyEmail{}, sql.ErrNoRows)
+		Return(repository.VerifyEmail{}, repository.ErrRecordNotFound)
 
 	user, res, err := userService.SignIn(ctx, domain.UserSignIn{})
 	require.True(t, errors.Is(err, domain.ErrSecretCodeInvalid))

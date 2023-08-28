@@ -2,7 +2,6 @@ package http
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,6 +20,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/require"
 )
 
@@ -72,7 +72,7 @@ func randomUser(t *testing.T) (user repository.User) {
 		ID:       id,
 		Email:    utils.RandomEmail(),
 		Username: utils.RandomString(10),
-		Photo: sql.NullString{
+		Photo: pgtype.Text{
 			String: fmt.Sprintf("https://%s.png", utils.RandomString(7)),
 			Valid:  true,
 		},
@@ -184,7 +184,7 @@ func TestHandler_userSignIn(t *testing.T) {
 		ID:       uuid.New(),
 		Email:    utils.RandomEmail(),
 		Username: utils.RandomString(10),
-		Photo: sql.NullString{
+		Photo: pgtype.Text{
 			String: fmt.Sprintf("https://%s.png", utils.RandomString(7)),
 			Valid:  true,
 		},
@@ -651,7 +651,7 @@ func TestHandler_getUserById(t *testing.T) {
 			mockBehavior: func(s *mock_service.MockUsers, userId uuid.UUID) {
 				s.EXPECT().
 					GetById(gomock.Any(), userId).
-					Return(repository.User{}, sql.ErrNoRows)
+					Return(repository.User{}, repository.ErrRecordNotFound)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNotFound, recorder.Code)
@@ -915,7 +915,7 @@ func TestHandler_deleteUser(t *testing.T) {
 				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userId, time.Minute)
 			},
 			mockBehavior: func(s *mock_service.MockUsers, userId uuid.UUID) {
-				s.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(sql.ErrNoRows)
+				s.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(repository.ErrRecordNotFound)
 			},
 			statusCode:   404,
 			responseBody: fmt.Sprintf(`{"message":"%s"}`, domain.ErrUserNotFound),

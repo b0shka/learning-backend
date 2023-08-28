@@ -31,7 +31,7 @@ func createRandomVerifyEmail(t *testing.T, user User) VerifyEmail {
 		ExpiresAt:  time.Now().Add(time.Minute * 5),
 	}
 
-	verifyEmail, err := testQueries.CreateVerifyEmail(context.Background(), arg)
+	verifyEmail, err := testStore.CreateVerifyEmail(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, verifyEmail)
 
@@ -52,7 +52,7 @@ func TestRepository_GetVerifyEmail(t *testing.T) {
 		SecretCode: verifyEmail1.SecretCode,
 	}
 
-	verifyEmail2, err := testQueries.GetVerifyEmail(context.Background(), arg)
+	verifyEmail2, err := testStore.GetVerifyEmail(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, verifyEmail2)
 
@@ -65,13 +65,13 @@ func TestRepository_GetVerifyEmail(t *testing.T) {
 func TestRepository_DeleteVerifyEmailById(t *testing.T) {
 	user := createRandomUser(t)
 	verifyEmail := createRandomVerifyEmail(t, user)
-	err := testQueries.DeleteVerifyEmailById(context.Background(), verifyEmail.ID)
+	err := testStore.DeleteVerifyEmailById(context.Background(), verifyEmail.ID)
 	require.NoError(t, err)
 }
 
 func TestRepository_DeleteVerifyEmailByEmail(t *testing.T) {
 	user := createRandomUser(t)
 	createRandomVerifyEmail(t, user)
-	err := testQueries.DeleteVerifyEmailByEmail(context.Background(), user.Email)
+	err := testStore.DeleteVerifyEmailByEmail(context.Background(), user.Email)
 	require.NoError(t, err)
 }

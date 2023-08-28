@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -25,7 +24,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/hibiken/asynq"
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 //	@title			Service API
@@ -66,10 +65,9 @@ func Run(configPath string) {
 	// db := mongoClient.Database(cfg.Mongo.DBName)
 	// repos := repository.NewRepositories(db)
 
-	db, err := sql.Open("postgres", cfg.Postgres.URL)
+	connPool, err := pgxpool.New(context.Background(), cfg.Postgres.URL)
 	if err != nil {
 		logger.Errorf("cannot connect to database: %s", err)
-		return
 	}
 	logger.Info("Success connect to database")
 
@@ -80,7 +78,7 @@ func Run(configPath string) {
 	}
 	logger.Info("db migrated successfully")
 
-	repos := repository.NewStore(db)
+	repos := repository.NewStore(connPool)
 
 	redisOpt := asynq.RedisClientOpt{
 		Addr: cfg.Redis.Address,
@@ -124,11 +122,11 @@ func Run(configPath string) {
 	// 	logger.Error(err.Error())
 	// }
 
-	if err := db.Close(); err != nil {
-		logger.Error(err.Error())
-	}
+	// if err := db.Close(); err != nil {
+	// 	logger.Error(err.Error())
+	// }
 
-	logger.Info("Database disconnected")
+	// logger.Info("Database disconnected")
 }
 
 func runDBMigration(migrationURL, dbSource string) error {
