@@ -4,13 +4,21 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: postgres
+    ports:
+      - 5432:5432
     environment:
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=qwerty
       - POSTGRES_DB=service
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - 6379:6379
+
   api:
-    image: b0shka/backend:latest
+    image: cr.selcloud.ru/service/backend:latest
     container_name: backend
     build:
       context: .
@@ -19,6 +27,7 @@ services:
       - 8080:8080
     depends_on:
       - postgres
+      - redis
     environment:
       - GIN_MODE=release
     env_file:

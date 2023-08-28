@@ -4,11 +4,10 @@ API_IMAGE = backend
 POSTGRES_IMAGE = postgres
 REDIS_IMAGE=redis
 TAG = latest
-NETWOTK=backend-network
 DB_URL=postgresql://root:qwerty@localhost:5432/service?sslmode=disable
 MIGRATION_URL=internal/repository/postgresql/migration
 
-.PHONY: build start test lint swag mock network docker-build docker-run docker-push docker-run-postgres docker-run-redis migrateup migratedown sqlc
+.PHONY: build start test lint swag mock docker-build docker-run docker-push docker-run-postgres docker-run-redis migrateup migratedown sqlc
 .DEFAULT_GOAL := start
 
 build:
@@ -23,7 +22,6 @@ test:
 #	make migrateup
 	GIN_MODE=release go test --short -coverprofile=cover.out -v -count=1 ./...
 	make test.coverage
-#	make migratedown
 #	docker stop ${POSTGRES_IMAGE}
 #	docker rm ${POSTGRES_IMAGE}
 
@@ -42,23 +40,20 @@ mock:
 	mockgen -source=internal/service/service.go -destination=internal/service/mocks/mock_service.go
 	mockgen -destination internal/worker/mocks/mock_worker.go github.com/b0shka/backend/internal/worker TaskDistributor
 
-network:
-	docker network create ${NETWOTK}
-
 docker-build:
 	docker build -f Dockerfile -t cr.selcloud.ru/${REGISTRY}/${API_IMAGE}:${TAG} .
 
 docker-run:
-	docker run --name ${API_IMAGE} --network ${NETWOTK} -p 8080:8080 -e GIN_MODE=release -e APP_ENV=local --rm -d cr.selcloud.ru/${REGISTRY}/${API_IMAGE}:${TAG}
+	docker run --name ${API_IMAGE} -p 8080:8080 -e GIN_MODE=release -e APP_ENV=local --rm -d cr.selcloud.ru/${REGISTRY}/${API_IMAGE}:${TAG}
 
 docker-push:
 	docker push cr.selcloud.ru/${REGISTRY}/${API_IMAGE}:${TAG}
 
 docker-run-postgres:
-	docker run --name ${POSTGRES_IMAGE} --network ${NETWOTK} -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=qwerty -e POSTGRES_DB=service -d postgres:15-alpine
+	docker run --name ${POSTGRES_IMAGE} -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=qwerty -e POSTGRES_DB=service -d postgres:15-alpine
 
 docker-run-redis:
-	docker run --name ${REDIS_IMAGE} --network ${NETWOTK} -p 6379:6379 -d redis:7-alpine
+	docker run --name ${REDIS_IMAGE} -p 6379:6379 -d redis:7-alpine
 
 create-migration:
 	migrate create -ext sql -dir ${MIGRATION_URL} -seq ${name}
