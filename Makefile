@@ -1,12 +1,14 @@
-PROGRAM_NAME = app
-REGISTRY = b0shka
+PROGRAM_NAME = main
+REGISTRY = service
 API_IMAGE = backend
-POSTGRES_IMAGE=postgres
+POSTGRES_IMAGE = postgres
+REDIS_IMAGE=redis
 TAG = latest
 NETWOTK=backend-network
 DB_URL=postgresql://root:qwerty@localhost:5432/service?sslmode=disable
+MIGRATION_URL=internal/repository/postgresql/migration
 
-.PHONY: build start test lint swag mock network docker-build docker-run docker-push docker-run-postgres createdb dropdb create-migrate migrateup migratedown sqlc
+.PHONY: build start test lint swag mock network docker-build docker-run docker-push docker-run-postgres docker-run-redis migrateup migratedown sqlc
 .DEFAULT_GOAL := start
 
 build:
@@ -14,16 +16,14 @@ build:
 
 start: build
 #	docker compose up
-	APP_ENV="local" .bin/app
+	APP_ENV="local" .bin/main
 
 test:
 #	make docker-run-postgres
-#	make createdb
 #	make migrateup
-	GIN_MODE=release go test --short -coverprofile=cover.out -v ./...
+	GIN_MODE=release go test --short -coverprofile=cover.out -v -count=1 ./...
 	make test.coverage
 #	make migratedown
-#	make dropdb
 #	docker stop ${POSTGRES_IMAGE}
 #	docker rm ${POSTGRES_IMAGE}
 
@@ -40,36 +40,34 @@ mock:
 	mockgen -source=internal/repository/mongodb/repository.go -destination=internal/repository/mongodb/mocks/mock_repository.go
 	mockgen -destination=internal/repository/postgresql/mocks/mock_repository.go github.com/b0shka/backend/internal/repository/postgresql/sqlc Store
 	mockgen -source=internal/service/service.go -destination=internal/service/mocks/mock_service.go
+	mockgen -destination internal/worker/mocks/mock_worker.go github.com/b0shka/backend/internal/worker TaskDistributor
 
 network:
 	docker network create ${NETWOTK}
 
 docker-build:
-	docker build -f Dockerfile -t ${REGISTRY}/${API_IMAGE}:${TAG} .
+	docker build -f Dockerfile -t cr.selcloud.ru/${REGISTRY}/${API_IMAGE}:${TAG} .
 
 docker-run:
-	docker run --name ${API_IMAGE} --network ${NETWOTK} -p 8080:8080 -e GIN_MODE=release -e APP_ENV=local --rm -d ${REGISTRY}/${API_IMAGE}:${TAG}
+	docker run --name ${API_IMAGE} --network ${NETWOTK} -p 8080:8080 -e GIN_MODE=release -e APP_ENV=local --rm -d cr.selcloud.ru/${REGISTRY}/${API_IMAGE}:${TAG}
 
 docker-push:
-	docker push ${REGISTRY}/${API_IMAGE}:${TAG}
+	docker push cr.selcloud.ru/${REGISTRY}/${API_IMAGE}:${TAG}
 
 docker-run-postgres:
-	docker run --name ${POSTGRES_IMAGE} --network ${NETWOTK} -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=qwerty -d postgres:15-alpine
+	docker run --name ${POSTGRES_IMAGE} --network ${NETWOTK} -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=qwerty -e POSTGRES_DB=service -d postgres:15-alpine
 
-createdb:
-	docker exec -it ${POSTGRES_IMAGE} createdb --username=root --owner=root service
+docker-run-redis:
+	docker run --name ${REDIS_IMAGE} --network ${NETWOTK} -p 6379:6379 -d redis:7-alpine
 
-dropdb:
-	docker exec -it ${POSTGRES_IMAGE} dropdb service
-
-create-migrate:
-	migrate create -ext sql -dir internal/repository/postgres/migration -seq name_migration
+create-migration:
+	migrate create -ext sql -dir ${MIGRATION_URL} -seq ${name}
 
 migrateup:
-	migrate -path internal/repository/postgresql/migration -database "$(DB_URL)" -verbose up
+	migrate -path ${MIGRATION_URL} -database ${DB_URL} -verbose up
 
 migratedown:
-	migrate -path internal/repository/postgresql/migration -database "$(DB_URL)" -verbose down
+	migrate -path ${MIGRATION_URL} -database ${DB_URL} -verbose down
 
 sqlc:
 	sqlc generate

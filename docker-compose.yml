@@ -19,12 +19,13 @@ services:
       - 8080:8080
     depends_on:
       - postgres
+    environment:
+      - GIN_MODE=release
     env_file:
       - .env
     entrypoint: [
       "/app/wait-for.sh", 
       "postgres:5432", 
-      "--", 
-      "/app/start.sh"
+      "--"
     ]
-    command: ["/app/app"]
+    command: ["/app/main"]

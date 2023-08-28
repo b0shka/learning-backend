@@ -12,25 +12,21 @@ import (
 
 type (
 	Config struct {
-		Mongo    MongoConfig
 		Postgres PostgresConfig
+		Redis    RedisConfig
 		HTTP     HTTPConfig  `mapstructure:"http"`
 		Auth     AuthConfig  `mapstructure:"auth"`
 		SMTP     SMTPConfig  `mapstructure:"smtp"`
 		Email    EmailConfig `mapstructure:"email"`
 	}
 
-	MongoConfig struct {
-		URI    string `envconfig:"MONGO_URI"`
-		DBName string `envconfig:"MONGO_DB_NAME"`
+	PostgresConfig struct {
+		URL          string `envconfig:"POSTGRESQL_URL"`
+		MigrationURL string `envconfig:"MIGRATION_URL"`
 	}
 
-	PostgresConfig struct {
-		User     string `envconfig:"POSTGRESQL_USER"`
-		Password string `envconfig:"POSTGRESQL_PASSWORD"`
-		Host     string `envconfig:"POSTGRESQL_HOST"`
-		Port     string `envconfig:"POSTGRESQL_PORT"`
-		DBName   string `envconfig:"POSTGRESQL_DB_NAME"`
+	RedisConfig struct {
+		Address string `envconfig:"REDIS_ADDRESS"`
 	}
 
 	EmailConfig struct {
@@ -42,13 +38,13 @@ type (
 	}
 
 	EmailTemplates struct {
-		Verify string `mapstructure:"verify_email"`
-		SignIn string `mapstructure:"signin_account"`
+		VerifyEmail       string `mapstructure:"verify_email"`
+		LoginNotification string `mapstructure:"login_notification"`
 	}
 
 	EmailSubjects struct {
-		Verify string `mapstructure:"verify_email"`
-		SignIn string `mapstructure:"signin_account"`
+		VerifyEmail       string `mapstructure:"verify_email"`
+		LoginNotification string `mapstructure:"login_notification"`
 	}
 
 	AuthConfig struct {

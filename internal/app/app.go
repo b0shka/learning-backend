@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -16,11 +15,16 @@ import (
 	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
 	"github.com/b0shka/backend/internal/server"
 	"github.com/b0shka/backend/internal/service"
+	"github.com/b0shka/backend/internal/worker"
 	"github.com/b0shka/backend/pkg/auth"
 	"github.com/b0shka/backend/pkg/email"
 	"github.com/b0shka/backend/pkg/hash"
 	"github.com/b0shka/backend/pkg/logger"
-	_ "github.com/lib/pq"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/hibiken/asynq"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 //	@title			Service API
@@ -47,45 +51,39 @@ func Run(configPath string) {
 		return
 	}
 
-	emailService := email.NewEmailService(
-		cfg.Email.ServiceName,
-		cfg.Email.ServiceAddress,
-		cfg.Email.ServicePassword,
-		cfg.SMTP.Host,
-		cfg.SMTP.Port,
-	)
-
 	tokenManager, err := auth.NewPasetoManager(cfg.Auth.SecretKey)
 	if err != nil {
 		logger.Error(err)
 		return
 	}
 
-	// mongoClient, err := mongodb.NewClient(cfg.Mongo.URI)
-	// if err != nil {
-	// 	logger.Error(err)
-	// 	return
-	// }
-	// db := mongoClient.Database(cfg.Mongo.DBName)
-	// repos := repository.NewRepositories(db)
+	connPool, err := pgxpool.New(context.Background(), cfg.Postgres.URL)
+	if err != nil {
+		logger.Errorf("cannot connect to database: %s", err)
+	}
+	logger.Info("Success connect to database")
 
-	postgresSource := fmt.Sprintf(
-		"host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
-		cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.User, cfg.Postgres.DBName, cfg.Postgres.Password,
-	)
-	db, err := sql.Open("postgres", postgresSource)
+	err = runDBMigration(cfg.Postgres.MigrationURL, cfg.Postgres.URL)
 	if err != nil {
 		logger.Error(err)
+		return
 	}
+	logger.Info("db migrated successfully")
 
-	repos := repository.NewStore(db)
+	repos := repository.NewStore(connPool)
+
+	redisOpt := asynq.RedisClientOpt{
+		Addr: cfg.Redis.Address,
+	}
+	taskDistributor := worker.NewRedisTaskDistributor(redisOpt)
+	go runTaskProcessor(redisOpt, repos, hasher, cfg)
+
 	services := service.NewServices(service.Deps{
-		Repos:        repos,
-		Hasher:       hasher,
-		TokenManager: tokenManager,
-		EmailService: *emailService,
-		EmailConfig:  cfg.Email,
-		AuthConfig:   cfg.Auth,
+		Repos:           repos,
+		Hasher:          hasher,
+		TokenManager:    tokenManager,
+		AuthConfig:      cfg.Auth,
+		TaskDistributor: taskDistributor,
 	})
 
 	handlers := handler.NewHandler(services, tokenManager)
@@ -112,13 +110,49 @@ func Run(configPath string) {
 	}
 	logger.Info("Server stoped")
 
-	// if err := mongoClient.Disconnect(context.Background()); err != nil {
-	// 	logger.Error(err.Error())
-	// }
+	connPool.Close()
+	logger.Info("Database disconnected")
+}
 
-	if err := db.Close(); err != nil {
-		logger.Error(err.Error())
+func runDBMigration(migrationURL, dbSource string) error {
+	migration, err := migrate.New(migrationURL, dbSource)
+	if err != nil {
+		return fmt.Errorf("connot create new migarte instance: %s", err.Error())
 	}
 
-	logger.Info("Database disconnected")
+	if err := migration.Up(); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("failed to run migrate up: %s", err.Error())
+	}
+
+	return nil
+}
+
+func runTaskProcessor(
+	redisOpt asynq.RedisClientOpt,
+	store repository.Store,
+	hasher hash.Hasher,
+	cfg *config.Config,
+) {
+	emailService := email.NewEmailService(
+		cfg.Email.ServiceName,
+		cfg.Email.ServiceAddress,
+		cfg.Email.ServicePassword,
+		cfg.SMTP.Host,
+		cfg.SMTP.Port,
+	)
+
+	taskProcessor := worker.NewRedisTaskProcessor(
+		redisOpt,
+		store,
+		hasher,
+		emailService,
+		cfg.Email,
+		cfg.Auth,
+	)
+	logger.Info("start task processor")
+
+	err := taskProcessor.Start()
+	if err != nil {
+		logger.Error("failed to start task processor")
+	}
 }

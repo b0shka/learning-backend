@@ -7,20 +7,15 @@ import (
 	"github.com/b0shka/backend/internal/config"
 	"github.com/b0shka/backend/internal/domain"
 	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
+	"github.com/b0shka/backend/internal/worker"
 	"github.com/b0shka/backend/pkg/auth"
-	"github.com/b0shka/backend/pkg/email"
 	"github.com/b0shka/backend/pkg/hash"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
-type UserSignInEmail struct {
-	Email     string
-	UserAgent string
-	ClientIp  string
-}
-
 type Tokens struct {
+	SessionID             uuid.UUID `json:"session_id"`
 	RefreshToken          string    `json:"refresh_token"`
 	RefreshTokenExpiresAt time.Time `json:"refresh_token_expires_at"`
 	AccessToken           string    `json:"access_token"`
@@ -46,12 +41,11 @@ type Services struct {
 }
 
 type Deps struct {
-	Repos        repository.Store
-	Hasher       hash.Hasher
-	TokenManager auth.Manager
-	EmailService email.EmailService
-	EmailConfig  config.EmailConfig
-	AuthConfig   config.AuthConfig
+	Repos           repository.Store
+	Hasher          hash.Hasher
+	TokenManager    auth.Manager
+	AuthConfig      config.AuthConfig
+	TaskDistributor worker.TaskDistributor
 }
 
 func NewServices(deps Deps) *Services {
@@ -60,9 +54,8 @@ func NewServices(deps Deps) *Services {
 			deps.Repos,
 			deps.Hasher,
 			deps.TokenManager,
-			deps.EmailService,
-			deps.EmailConfig,
 			deps.AuthConfig,
+			deps.TaskDistributor,
 		),
 	}
 }

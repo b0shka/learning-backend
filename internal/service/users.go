@@ -1,77 +1,62 @@
 package service
 
 import (
-	"bytes"
 	"context"
-	"database/sql"
 	"errors"
-	"html/template"
 	"strconv"
 	"time"
 
 	"github.com/b0shka/backend/internal/config"
 	"github.com/b0shka/backend/internal/domain"
 	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
+	"github.com/b0shka/backend/internal/worker"
 	"github.com/b0shka/backend/pkg/auth"
-	"github.com/b0shka/backend/pkg/email"
 	"github.com/b0shka/backend/pkg/hash"
 	"github.com/b0shka/backend/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
+	"github.com/jackc/pgx/v5/pgtype"
+)
+
+const (
+	formatTimeLayout = "Jan _2, 2006 15:04:05 (MST)"
 )
 
 type UsersService struct {
-	repo         repository.Store
-	hasher       hash.Hasher
-	tokenManager auth.Manager
-	emailService email.EmailService
-	emailConfig  config.EmailConfig
-	authConfig   config.AuthConfig
+	repo            repository.Store
+	hasher          hash.Hasher
+	tokenManager    auth.Manager
+	authConfig      config.AuthConfig
+	taskDistributor worker.TaskDistributor
 }
 
 func NewUsersService(
 	repo repository.Store,
 	hasher hash.Hasher,
 	tokenManager auth.Manager,
-	emailService email.EmailService,
-	emailConfig config.EmailConfig,
 	authConfig config.AuthConfig,
+	taskDistributor worker.TaskDistributor,
 ) *UsersService {
 	return &UsersService{
-		repo:         repo,
-		hasher:       hasher,
-		tokenManager: tokenManager,
-		emailService: emailService,
-		emailConfig:  emailConfig,
-		authConfig:   authConfig,
+		repo:            repo,
+		hasher:          hasher,
+		tokenManager:    tokenManager,
+		authConfig:      authConfig,
+		taskDistributor: taskDistributor,
 	}
 }
 
 func (s *UsersService) SendCodeEmail(ctx context.Context, email string) error {
-	secretCode := utils.RandomInt(100000, 999999)
-	secretCodeStr := strconv.Itoa(int(secretCode))
-	secretCodeHash, err := s.hasher.HashCode(secretCodeStr)
+	_, err := s.repo.GetUserByEmail(ctx, email)
 	if err != nil {
-		return err
-	}
-
-	err = s.sendEmailMessage(email, s.emailConfig.Templates.Verify, domain.UserSignIn{
-		Email:      email,
-		SecretCode: secretCode,
-	})
-	if err != nil {
-		return err
-	}
-
-	user, err := s.repo.GetUserByEmail(ctx, email)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, repository.ErrRecordNotFound) {
 			userID, err := uuid.NewRandom()
 			if err != nil {
 				return err
 			}
 
-			user, err = s.repo.CreateUser(ctx, repository.CreateUserParams{
+			_, err = s.repo.CreateUser(ctx, repository.CreateUserParams{
 				ID:    userID,
 				Email: email,
 			})
@@ -83,19 +68,17 @@ func (s *UsersService) SendCodeEmail(ctx context.Context, email string) error {
 		}
 	}
 
-	verifyEmailID, err := uuid.NewRandom()
-	if err != nil {
-		return err
+	secretCode := utils.RandomInt(100000, 999999)
+	taskPayload := &worker.PayloadSendVerifyEmail{
+		Email:      email,
+		SecretCode: secretCode,
 	}
-
-	verifyEmail := repository.CreateVerifyEmailParams{
-		ID:         verifyEmailID,
-		Email:      user.Email,
-		SecretCode: secretCodeHash,
-		ExpiresAt:  time.Now().Add(s.authConfig.SercetCodeLifetime),
+	opts := []asynq.Option{
+		asynq.MaxRetry(10),
+		asynq.ProcessIn(time.Second),
+		asynq.Queue(worker.QueueCritical),
 	}
-
-	_, err = s.repo.CreateVerifyEmail(ctx, verifyEmail)
+	err = s.taskDistributor.DistributeTaskSendVerifyEmail(ctx, taskPayload, opts...)
 	return err
 }
 
@@ -113,7 +96,7 @@ func (s *UsersService) SignIn(ctx *gin.Context, inp domain.UserSignIn) (reposito
 
 	verifyEmail, err := s.repo.GetVerifyEmail(ctx, arg)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, repository.ErrRecordNotFound) {
 			return repository.User{}, Tokens{}, domain.ErrSecretCodeInvalid
 		}
 		return repository.User{}, Tokens{}, err
@@ -138,36 +121,23 @@ func (s *UsersService) SignIn(ctx *gin.Context, inp domain.UserSignIn) (reposito
 		return repository.User{}, Tokens{}, err
 	}
 
-	err = s.sendEmailMessage(inp.Email, s.emailConfig.Templates.SignIn, UserSignInEmail{
+	taskPayload := &worker.PayloadSendLoginNotification{
 		Email:     inp.Email,
 		UserAgent: ctx.Request.UserAgent(),
 		ClientIp:  ctx.ClientIP(),
-	})
-
-	return user, tokens, err
-}
-
-func (s *UsersService) sendEmailMessage(email, templateFile string, contentData any) error {
-	var content bytes.Buffer
-	contentHtml, err := template.ParseFiles(templateFile)
+		Time:      time.Now().Format(formatTimeLayout),
+	}
+	opts := []asynq.Option{
+		asynq.MaxRetry(10),
+		asynq.ProcessIn(5 * time.Second),
+		asynq.Queue(worker.QueueDefault),
+	}
+	err = s.taskDistributor.DistributeTaskSendLoginNotification(ctx, taskPayload, opts...)
 	if err != nil {
-		return err
+		return repository.User{}, Tokens{}, err
 	}
 
-	err = contentHtml.Execute(&content, contentData)
-	if err != nil {
-		return err
-	}
-
-	err = s.emailService.SendEmail(domain.SendEmailConfig{
-		Subject: s.emailConfig.Subjects.SignIn,
-		Content: content.String(),
-	}, email)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return user, tokens, nil
 }
 
 func (s *UsersService) createSession(ctx *gin.Context, id uuid.UUID) (Tokens, error) {
@@ -181,6 +151,7 @@ func (s *UsersService) createSession(ctx *gin.Context, id uuid.UUID) (Tokens, er
 		return res, err
 	}
 
+	res.SessionID = refreshPayload.ID
 	res.RefreshToken = refreshToken
 	res.RefreshTokenExpiresAt = refreshPayload.ExpiresAt
 
@@ -263,7 +234,10 @@ func (s *UsersService) Update(ctx context.Context, id uuid.UUID, user domain.Use
 	arg := repository.UpdateUserParams{
 		ID:       id,
 		Username: user.Username,
-		Photo:    user.Photo,
+		Photo: pgtype.Text{
+			String: user.Photo,
+			Valid:  true,
+		},
 	}
 	return s.repo.UpdateUser(ctx, arg)
 }

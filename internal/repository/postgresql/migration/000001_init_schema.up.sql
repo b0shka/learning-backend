@@ -2,7 +2,7 @@ CREATE TABLE "users" (
   "id" uuid PRIMARY KEY,
   "email" varchar UNIQUE NOT NULL,
   "username" varchar UNIQUE NOT NULL,
-  "photo" varchar NOT NULL,
+  "photo" varchar,
   "created_at" timestamptz NOT NULL DEFAULT (now())
 );
 

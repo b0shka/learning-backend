@@ -1,0 +1,12 @@
+<div style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #fff;">
+    <div style="max-width: 600px; margin: 20px auto; padding: 10px 20px 20px 20px; background-color: #f7f7f7; border-radius: 15px; text-align: center;">
+        <h2 style="color: #333333;">Вход в аккаунт</h2>
+        <p style="color: #666666;">Хотим вас уведомить о том, что в ваш аккаунт <b>{{ .Email }}</b> был выполнен вход.</p>
+        <div style="padding: 10px; background-color: #e2e2e2; border-radius: 10px; display: inline-block; text-align: left;">
+            <p style="margin: 0;"><strong>User-Agent:</strong> {{ .UserAgent }}</p>
+            <p style="margin: 0;"><strong>IP адрес:</strong> {{ .ClientIp }}</p>
+            <p style="margin: 0;"><strong>Время:</strong> {{ .Time }}</p>
+        </div>
+        <p style="color: #666666;">Если вы не запрашивали этот код или считаете, что это была попытка несанкционированного доступа, пожалуйста, свяжитесь с нами.</p>
+    </div>
+</div>

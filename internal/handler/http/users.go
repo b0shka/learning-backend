@@ -1,13 +1,14 @@
 package http
 
 import (
-	"database/sql"
 	"errors"
 	"net/http"
 	"time"
 
 	"github.com/b0shka/backend/internal/domain"
+	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func (h *Handler) initUsersRoutes(api *gin.RouterGroup) {
@@ -33,18 +34,18 @@ type userSendCodeRequest struct {
 	Email string `json:"email" binding:"required,email"`
 }
 
-//	@Summary		User Send Code Email
-//	@Tags			auth
-//	@Description	send secret code to email user
-//	@ModuleID		sendCodeEmail
-//	@Accept			json
-//	@Produce		json
-//	@Param			input	body		userSendCodeRequest	true	"auth info"
-//	@Success		201		{string}	string			"ok"
-//	@Failure		400,404	{object}	response
-//	@Failure		500		{object}	response
-//	@Failure		default	{object}	response
-//	@Router			/user/auth/send-code [post]
+// @Summary		User Send Code Email
+// @Tags			auth
+// @Description	send secret code to email user
+// @ModuleID		sendCodeEmail
+// @Accept			json
+// @Produce		json
+// @Param			input	body		userSendCodeRequest	true	"auth info"
+// @Success		201		{string}	string			"ok"
+// @Failure		400,404	{object}	response
+// @Failure		500		{object}	response
+// @Failure		default	{object}	response
+// @Router			/user/auth/send-code [post]
 func (h *Handler) sendCodeEmail(c *gin.Context) {
 	var inp userSendCodeRequest
 	if err := c.BindJSON(&inp); err != nil {
@@ -62,6 +63,7 @@ func (h *Handler) sendCodeEmail(c *gin.Context) {
 }
 
 type userSignInResponse struct {
+	SessionID             uuid.UUID   `json:"session_id"`
 	RefreshToken          string      `json:"refresh_token"`
 	RefreshTokenExpiresAt time.Time   `json:"refresh_token_expites_at"`
 	AccessToken           string      `json:"access_token"`
@@ -69,18 +71,18 @@ type userSignInResponse struct {
 	User                  domain.User `json:"user"`
 }
 
-//	@Summary		User SignIn
-//	@Tags			auth
-//	@Description	user sign in
-//	@ModuleID		userSignIn
-//	@Accept			json
-//	@Produce		json
-//	@Param			input	body		domain.UserSignIn	true	"sign in info"
-//	@Success		201		{object}	userSignInResponse
-//	@Failure		400,404	{object}	response
-//	@Failure		500		{object}	response
-//	@Failure		default	{object}	response
-//	@Router			/user/auth/sign-in [post]
+// @Summary		User SignIn
+// @Tags			auth
+// @Description	user sign in
+// @ModuleID		userSignIn
+// @Accept			json
+// @Produce		json
+// @Param			input	body		domain.UserSignIn	true	"sign in info"
+// @Success		201		{object}	userSignInResponse
+// @Failure		400,404	{object}	response
+// @Failure		500		{object}	response
+// @Failure		default	{object}	response
+// @Router			/user/auth/sign-in [post]
 func (h *Handler) userSignIn(c *gin.Context) {
 	var inp domain.UserSignIn
 	if err := c.BindJSON(&inp); err != nil {
@@ -99,6 +101,7 @@ func (h *Handler) userSignIn(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, userSignInResponse{
+		SessionID:             res.SessionID,
 		RefreshToken:          res.RefreshToken,
 		RefreshTokenExpiresAt: res.RefreshTokenExpiresAt,
 		AccessToken:           res.AccessToken,
@@ -107,7 +110,7 @@ func (h *Handler) userSignIn(c *gin.Context) {
 			ID:        user.ID,
 			Email:     user.Email,
 			Username:  user.Username,
-			Photo:     user.Photo,
+			Photo:     user.Photo.String,
 			CreatedAt: user.CreatedAt,
 		},
 	})
@@ -122,18 +125,18 @@ type refreshTokenResponse struct {
 	AccessTokenExpiresAt time.Time `json:"access_token_expires_at"`
 }
 
-//	@Summary		User Refresh Token
-//	@Tags			auth
-//	@Description	user refresh token
-//	@ModuleID		refreshToken
-//	@Accept			json
-//	@Produce		json
-//	@Param			input	body		refreshTokenRequest	true	"refresh info"
-//	@Success		201		{object}	refreshTokenResponse
-//	@Failure		400,404	{object}	response
-//	@Failure		500		{object}	response
-//	@Failure		default	{object}	response
-//	@Router			/user/auth/refresh [post]
+// @Summary		User Refresh Token
+// @Tags			auth
+// @Description	user refresh token
+// @ModuleID		refreshToken
+// @Accept			json
+// @Produce		json
+// @Param			input	body		refreshTokenRequest	true	"refresh info"
+// @Success		201		{object}	refreshTokenResponse
+// @Failure		400,404	{object}	response
+// @Failure		500		{object}	response
+// @Failure		default	{object}	response
+// @Router			/user/auth/refresh [post]
 func (h *Handler) refreshToken(c *gin.Context) {
 	var inp refreshTokenRequest
 	if err := c.BindJSON(&inp); err != nil {
@@ -166,18 +169,18 @@ func (h *Handler) refreshToken(c *gin.Context) {
 	})
 }
 
-//	@Summary		Get User
-//  @Security		UsersAuth
-//	@Tags			account
-//	@Description	get information account
-//	@ModuleID		getUserById
-//	@Accept			json
-//	@Produce		json
-//	@Success		201		{object}	domain.User
-//	@Failure		400,404	{object}	response
-//	@Failure		500		{object}	response
-//	@Failure		default	{object}	response
-//	@Router			/user/ [get]
+//		@Summary		Get User
+//	 @Security		UsersAuth
+//		@Tags			account
+//		@Description	get information account
+//		@ModuleID		getUserById
+//		@Accept			json
+//		@Produce		json
+//		@Success		201		{object}	domain.User
+//		@Failure		400,404	{object}	response
+//		@Failure		500		{object}	response
+//		@Failure		default	{object}	response
+//		@Router			/user/ [get]
 func (h *Handler) getUserById(c *gin.Context) {
 	// id, err := parseIdFromPath(c, "id")
 	// if err != nil {
@@ -193,7 +196,7 @@ func (h *Handler) getUserById(c *gin.Context) {
 
 	user, err := h.services.Users.GetById(c, userPayload.UserID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, repository.ErrRecordNotFound) {
 			newResponse(c, http.StatusNotFound, domain.ErrUserNotFound.Error())
 			return
 		}
@@ -205,24 +208,24 @@ func (h *Handler) getUserById(c *gin.Context) {
 		ID:        user.ID,
 		Email:     user.Email,
 		Username:  user.Username,
-		Photo:     user.Photo,
+		Photo:     user.Photo.String,
 		CreatedAt: user.CreatedAt,
 	})
 }
 
-//	@Summary		Update User
-//  @Security		UsersAuth
-//	@Tags			account
-//	@Description	update user account
-//	@ModuleID		updateUser
-//	@Accept			json
-//	@Produce		json
-//	@Param			input	body		domain.UserUpdate	true	"user update info"
-//	@Success		201		{string}	string			"ok"
-//	@Failure		400,404	{object}	response
-//	@Failure		500		{object}	response
-//	@Failure		default	{object}	response
-//	@Router			/user/update [post]
+//		@Summary		Update User
+//	 @Security		UsersAuth
+//		@Tags			account
+//		@Description	update user account
+//		@ModuleID		updateUser
+//		@Accept			json
+//		@Produce		json
+//		@Param			input	body		domain.UserUpdate	true	"user update info"
+//		@Success		201		{string}	string			"ok"
+//		@Failure		400,404	{object}	response
+//		@Failure		500		{object}	response
+//		@Failure		default	{object}	response
+//		@Router			/user/update [post]
 func (h *Handler) updateUser(c *gin.Context) {
 	userPayload, err := getUserPaylaod(c)
 	if err != nil {
@@ -244,18 +247,18 @@ func (h *Handler) updateUser(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-//	@Summary		Delete User
-//  @Security		UsersAuth
-//	@Tags			account
-//	@Description	delete user account
-//	@ModuleID		deleteUser
-//	@Accept			json
-//	@Produce		json
-//	@Success		201		{string}	string			"ok"
-//	@Failure		400,404	{object}	response
-//	@Failure		500		{object}	response
-//	@Failure		default	{object}	response
-//	@Router			/user/delete [get]
+//		@Summary		Delete User
+//	 @Security		UsersAuth
+//		@Tags			account
+//		@Description	delete user account
+//		@ModuleID		deleteUser
+//		@Accept			json
+//		@Produce		json
+//		@Success		201		{string}	string			"ok"
+//		@Failure		400,404	{object}	response
+//		@Failure		500		{object}	response
+//		@Failure		default	{object}	response
+//		@Router			/user/delete [get]
 func (h *Handler) deleteUser(c *gin.Context) {
 	userPayload, err := getUserPaylaod(c)
 	if err != nil {
@@ -264,7 +267,7 @@ func (h *Handler) deleteUser(c *gin.Context) {
 	}
 
 	if err = h.services.Users.Delete(c, userPayload.UserID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, repository.ErrRecordNotFound) {
 			newResponse(c, http.StatusNotFound, domain.ErrUserNotFound.Error())
 			return
 		}

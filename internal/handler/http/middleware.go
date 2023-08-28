@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/b0shka/backend/pkg/auth"
-	"github.com/b0shka/backend/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
@@ -38,7 +37,6 @@ func userIdentity(tokenManager auth.Manager) gin.HandlerFunc {
 			newResponse(c, http.StatusUnauthorized, err.Error())
 			return
 		}
-		logger.Info(payload)
 
 		c.Set(userCtx, payload)
 	}

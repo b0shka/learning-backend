@@ -471,6 +471,9 @@ const docTemplate = `{
                 "refresh_token_expites_at": {
                     "type": "string"
                 },
+                "session_id": {
+                    "type": "string"
+                },
                 "user": {
                     "$ref": "#/definitions/domain.User"
                 }
