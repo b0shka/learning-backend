@@ -12,6 +12,13 @@ import (
 var testStore Store
 
 func TestMain(m *testing.M) {
+	postgresSource := "postgresql://root:qwerty@localhost:5432/service?sslmode=disable"
+
+	connPool, err := pgxpool.New(context.Background(), postgresSource)
+	if err != nil {
+		logger.Errorf("cannot to connect to database: %s", err)
+	}
+
 	// os.Setenv("APP_ENV", "local")
 	// cfg, err := config.InitConfig("../../../../configs")
 	// if err != nil {
@@ -19,12 +26,7 @@ func TestMain(m *testing.M) {
 	// 	return
 	// }
 
-	postgresSource := "postgresql://root:qwerty@localhost:5432/service?sslmode=disable"
-	connPool, err := pgxpool.New(context.Background(), postgresSource)
-	if err != nil {
-		logger.Errorf("cannot to connect to database: %s", err)
-	}
-
 	testStore = NewStore(connPool)
+
 	os.Exit(m.Run())
 }

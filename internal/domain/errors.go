@@ -7,6 +7,9 @@ var (
 	ErrInvalidEmail = errors.New("invalid email")
 	ErrIdentifier   = errors.New("invalid identifier type")
 
+	ErrEmptyAuthHeader         = errors.New("empty authorization header")
+	ErrInvalidAuthHeaderFormat = errors.New("invalid authorization header format")
+
 	ErrInvalidToken = errors.New("invalid token")
 	ErrExpiredToken = errors.New("token has expired")
 

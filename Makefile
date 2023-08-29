@@ -29,13 +29,12 @@ test.coverage:
 	go tool cover -func=cover.out | grep "total"
 
 lint:
-	golangci-lint run
+	golangci-lint run ./... --config=./.golangci.yml
 
 swag:
 	swag init -g internal/app/app.go
 
 mock:
-	mockgen -source=internal/repository/mongodb/repository.go -destination=internal/repository/mongodb/mocks/mock_repository.go
 	mockgen -destination=internal/repository/postgresql/mocks/mock_repository.go github.com/b0shka/backend/internal/repository/postgresql/sqlc Store
 	mockgen -source=internal/service/service.go -destination=internal/service/mocks/mock_service.go
 	mockgen -destination internal/worker/mocks/mock_worker.go github.com/b0shka/backend/internal/worker TaskDistributor

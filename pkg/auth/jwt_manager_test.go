@@ -52,19 +52,19 @@ func TestAuthJWT_CreateTokenAndVerify(t *testing.T) {
 	manager, err := NewJWTManager(utils.RandomString(32))
 	require.NoError(t, err)
 
-	userId, err := uuid.NewRandom()
+	userID, err := uuid.NewRandom()
 	require.NoError(t, err)
 
 	duration := time.Minute
-	testPayload, err := NewPayload(userId, duration)
+	testPayload, err := NewPayload(userID, duration)
 	require.NoError(t, err)
 
-	token, payload, err := manager.CreateToken(userId, duration)
+	token, payload, err := manager.CreateToken(userID, duration)
 	require.NoError(t, err)
 	require.NotEmpty(t, token)
 	require.NotEmpty(t, payload)
 
-	tokenExpired, payload, err := manager.CreateToken(userId, -duration)
+	tokenExpired, payload, err := manager.CreateToken(userID, -duration)
 	require.NoError(t, err)
 	require.NotEmpty(t, token)
 	require.NotEmpty(t, payload)

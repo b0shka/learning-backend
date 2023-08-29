@@ -9,8 +9,6 @@ import (
 
 func TestInitConfig(t *testing.T) {
 	type env struct {
-		mongoURI             string
-		mongoDBName          string
 		postgresqlURL        string
 		migrationURL         string
 		redisAddress         string
@@ -109,6 +107,7 @@ func TestInitConfig(t *testing.T) {
 			got, err := InitConfig(testCase.args.path)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("InitConfig() error = %v, wantErr %v", err, testCase.wantErr)
+
 				return
 			}
 			if !reflect.DeepEqual(got, testCase.want) {

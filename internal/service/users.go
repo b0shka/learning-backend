@@ -49,21 +49,19 @@ func NewUsersService(
 
 func (s *UsersService) SendCodeEmail(ctx context.Context, email string) error {
 	_, err := s.repo.GetUserByEmail(ctx, email)
-	if err != nil {
-		if errors.Is(err, repository.ErrRecordNotFound) {
-			userID, err := uuid.NewRandom()
-			if err != nil {
-				return err
-			}
+	if err != nil && !errors.Is(err, repository.ErrRecordNotFound) {
+		return err
+	} else if errors.Is(err, repository.ErrRecordNotFound) {
+		userID, err := uuid.NewRandom()
+		if err != nil {
+			return err
+		}
 
-			_, err = s.repo.CreateUser(ctx, repository.CreateUserParams{
-				ID:    userID,
-				Email: email,
-			})
-			if err != nil {
-				return err
-			}
-		} else {
+		_, err = s.repo.CreateUser(ctx, repository.CreateUserParams{
+			ID:    userID,
+			Email: email,
+		})
+		if err != nil {
 			return err
 		}
 	}
@@ -79,11 +77,13 @@ func (s *UsersService) SendCodeEmail(ctx context.Context, email string) error {
 		asynq.Queue(worker.QueueCritical),
 	}
 	err = s.taskDistributor.DistributeTaskSendVerifyEmail(ctx, taskPayload, opts...)
+
 	return err
 }
 
 func (s *UsersService) SignIn(ctx *gin.Context, inp domain.UserSignIn) (repository.User, Tokens, error) {
 	secretCodeStr := strconv.Itoa(int(inp.SecretCode))
+
 	secretCodeHash, err := s.hasher.HashCode(secretCodeStr)
 	if err != nil {
 		return repository.User{}, Tokens{}, err
@@ -99,6 +99,7 @@ func (s *UsersService) SignIn(ctx *gin.Context, inp domain.UserSignIn) (reposito
 		if errors.Is(err, repository.ErrRecordNotFound) {
 			return repository.User{}, Tokens{}, domain.ErrSecretCodeInvalid
 		}
+
 		return repository.User{}, Tokens{}, err
 	}
 
@@ -124,7 +125,7 @@ func (s *UsersService) SignIn(ctx *gin.Context, inp domain.UserSignIn) (reposito
 	taskPayload := &worker.PayloadSendLoginNotification{
 		Email:     inp.Email,
 		UserAgent: ctx.Request.UserAgent(),
-		ClientIp:  ctx.ClientIP(),
+		ClientIP:  ctx.ClientIP(),
 		Time:      time.Now().Format(formatTimeLayout),
 	}
 	opts := []asynq.Option{
@@ -132,6 +133,7 @@ func (s *UsersService) SignIn(ctx *gin.Context, inp domain.UserSignIn) (reposito
 		asynq.ProcessIn(5 * time.Second),
 		asynq.Queue(worker.QueueDefault),
 	}
+
 	err = s.taskDistributor.DistributeTaskSendLoginNotification(ctx, taskPayload, opts...)
 	if err != nil {
 		return repository.User{}, Tokens{}, err
@@ -226,7 +228,7 @@ func (s *UsersService) RefreshToken(ctx context.Context, refreshToken string) (R
 	return res, nil
 }
 
-func (s *UsersService) GetById(ctx context.Context, id uuid.UUID) (repository.User, error) {
+func (s *UsersService) GetByID(ctx context.Context, id uuid.UUID) (repository.User, error) {
 	return s.repo.GetUserById(ctx, id)
 }
 
@@ -239,6 +241,7 @@ func (s *UsersService) Update(ctx context.Context, id uuid.UUID, user domain.Use
 			Valid:  true,
 		},
 	}
+
 	return s.repo.UpdateUser(ctx, arg)
 }
 

@@ -14,7 +14,7 @@ const TaskSendLoginNotification = "task:send_login_notification"
 type PayloadSendLoginNotification struct {
 	Email     string `json:"email"`
 	UserAgent string `json:"user_agent"`
-	ClientIp  string `json:"client_ip"`
+	ClientIP  string `json:"client_ip"`
 	Time      string `json:"time"`
 }
 
@@ -37,16 +37,17 @@ func (distributor *RedisTaskDistributor) DistributeTaskSendLoginNotification(
 
 	logger.Infof("enqueued task: type - %s, payload - %v, queue - %s, max_retry - %d",
 		task.Type(), payload, info.Queue, info.MaxRetry)
+
 	return nil
 }
 
-func (processor *RedisTaskProcessor) ProcessTaskSendLoginNotification(ctx context.Context, task *asynq.Task) error {
+func (processor *RedisTaskProcessor) ProcessTaskSendLoginNotification(_ context.Context, task *asynq.Task) error {
 	var payload PayloadSendLoginNotification
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal payload: %w", asynq.SkipRetry)
 	}
 
-	err := processor.emailService.SendEmailMessage(
+	err := processor.emailService.SendEmail(
 		payload.Email,
 		processor.emailConfig.Templates.LoginNotification,
 		processor.emailConfig.Subjects.LoginNotification,
@@ -58,5 +59,6 @@ func (processor *RedisTaskProcessor) ProcessTaskSendLoginNotification(ctx contex
 
 	logger.Infof("processed task: type - %s, payload - %v, email - %s",
 		task.Type(), payload, payload.Email)
+
 	return nil
 }

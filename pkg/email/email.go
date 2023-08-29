@@ -10,7 +10,7 @@ import (
 	"github.com/jordan-wright/email"
 )
 
-type EmailService struct {
+type EmailService struct { //nolint:revive
 	Name     string
 	Email    string
 	Password string
@@ -28,14 +28,15 @@ func NewEmailService(name, email, password, host string, port int) *EmailService
 	}
 }
 
-func (s *EmailService) SendEmailMessage(toEmail, templateFile, subject string, contentData any) error {
+func (s *EmailService) SendEmail(toEmail, templateFile, subject string, contentData any) error {
 	var content bytes.Buffer
-	contentHtml, err := template.ParseFiles(templateFile)
+
+	contentHTML, err := template.ParseFiles(templateFile)
 	if err != nil {
 		return err
 	}
 
-	err = contentHtml.Execute(&content, contentData)
+	err = contentHTML.Execute(&content, contentData)
 	if err != nil {
 		return err
 	}
@@ -53,5 +54,6 @@ func (s *EmailService) SendEmailMessage(toEmail, templateFile, subject string, c
 	e.To = []string{toEmail}
 
 	smtpAuth := smtp.PlainAuth("", s.Email, s.Password, s.Host)
+
 	return e.Send(fmt.Sprintf("%s:%d", s.Host, s.Port), smtpAuth)
 }

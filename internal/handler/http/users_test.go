@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var errInternalServErr = errors.New("test: internal server error")
+var ErrInternalServerError = errors.New("test: internal server error")
 
 func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, user domain.User) {
 	data, err := io.ReadAll(body)
@@ -64,11 +64,11 @@ func requireBodyMatchRefershToken(t *testing.T, body *bytes.Buffer, token servic
 	require.Equal(t, token.AccessToken, gotTokens.AccessToken)
 }
 
-func randomUser(t *testing.T) (user repository.User) {
+func randomUser(t *testing.T) repository.User {
 	id, err := uuid.NewRandom()
 	require.NoError(t, err)
 
-	user = repository.User{
+	user := repository.User{
 		ID:       id,
 		Email:    utils.RandomEmail(),
 		Username: utils.RandomString(10),
@@ -78,6 +78,7 @@ func randomUser(t *testing.T) (user repository.User) {
 		},
 		CreatedAt: time.Now(),
 	}
+
 	return user
 }
 
@@ -111,10 +112,10 @@ func TestHandler_sendCodeEmail(t *testing.T) {
 			},
 			mockBehavior: func(s *mock_service.MockUsers, email string) {
 				s.EXPECT().SendCodeEmail(gomock.Any(), gomock.Any()).
-					Return(errInternalServErr)
+					Return(ErrInternalServerError)
 			},
 			statusCode:   500,
-			responseBody: fmt.Sprintf(`{"message":"%s"}`, errInternalServErr),
+			responseBody: fmt.Sprintf(`{"message":"%s"}`, ErrInternalServerError),
 		},
 		{
 			name: "empty fields",
@@ -156,7 +157,7 @@ func TestHandler_sendCodeEmail(t *testing.T) {
 			require.NoError(t, err)
 
 			req := httptest.NewRequest(
-				"POST",
+				http.MethodPost,
 				"/send-code",
 				bytes.NewReader(data),
 			)
@@ -227,13 +228,13 @@ func TestHandler_userSignIn(t *testing.T) {
 			mockBehavior: func(s *mock_service.MockUsers, input domain.UserSignIn) {
 				s.EXPECT().
 					SignIn(gomock.Any(), gomock.Any()).
-					Return(repository.User{}, service.Tokens{}, errInternalServErr)
+					Return(repository.User{}, service.Tokens{}, ErrInternalServerError)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
 				require.Equal(
 					t,
-					fmt.Sprintf(`{"message":"%s"}`, errInternalServErr),
+					fmt.Sprintf(`{"message":"%s"}`, ErrInternalServerError),
 					recorder.Body.String(),
 				)
 			},
@@ -363,7 +364,7 @@ func TestHandler_userSignIn(t *testing.T) {
 
 			recorder := httptest.NewRecorder()
 			req := httptest.NewRequest(
-				"POST",
+				http.MethodPost,
 				"/sign-in",
 				bytes.NewReader(data),
 			)
@@ -414,13 +415,13 @@ func TestHandler_refreshToken(t *testing.T) {
 			mockBehavior: func(s *mock_service.MockUsers, refreshToken string) {
 				s.EXPECT().
 					RefreshToken(gomock.Any(), gomock.Any()).
-					Return(service.RefreshToken{}, errInternalServErr)
+					Return(service.RefreshToken{}, ErrInternalServerError)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
 				require.Equal(
 					t,
-					fmt.Sprintf(`{"message":"%s"}`, errInternalServErr),
+					fmt.Sprintf(`{"message":"%s"}`, ErrInternalServerError),
 					recorder.Body.String(),
 				)
 			},
@@ -581,7 +582,7 @@ func TestHandler_refreshToken(t *testing.T) {
 
 			recorder := httptest.NewRecorder()
 			req := httptest.NewRequest(
-				"POST",
+				http.MethodPost,
 				"/refresh",
 				bytes.NewReader(data),
 			)
@@ -593,26 +594,26 @@ func TestHandler_refreshToken(t *testing.T) {
 }
 
 func TestHandler_getUserById(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockUsers, userId uuid.UUID)
+	type mockBehavior func(s *mock_service.MockUsers, userID uuid.UUID)
 
 	user := randomUser(t)
 
 	tests := []struct {
 		name          string
-		userId        uuid.UUID
+		userID        uuid.UUID
 		setupAuth     func(t *testing.T, request *http.Request, tokenManager auth.Manager)
 		mockBehavior  mockBehavior
 		checkResponse func(recoder *httptest.ResponseRecorder)
 	}{
 		{
 			name:   "ok",
-			userId: user.ID,
+			userID: user.ID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
 				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, user.ID, time.Minute)
 			},
-			mockBehavior: func(s *mock_service.MockUsers, userId uuid.UUID) {
+			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID) {
 				s.EXPECT().
-					GetById(gomock.Any(), userId).
+					GetByID(gomock.Any(), userID).
 					Return(user, nil)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
@@ -628,10 +629,10 @@ func TestHandler_getUserById(t *testing.T) {
 		},
 		{
 			name:      "no authorization",
-			userId:    user.ID,
+			userID:    user.ID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {},
-			mockBehavior: func(s *mock_service.MockUsers, userId uuid.UUID) {
-				s.EXPECT().GetById(gomock.Any(), gomock.Any()).Times(0)
+			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID) {
+				s.EXPECT().GetByID(gomock.Any(), gomock.Any()).Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusUnauthorized, recorder.Code)
@@ -644,13 +645,13 @@ func TestHandler_getUserById(t *testing.T) {
 		},
 		{
 			name:   "user not found",
-			userId: user.ID,
+			userID: user.ID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
 				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, user.ID, time.Minute)
 			},
-			mockBehavior: func(s *mock_service.MockUsers, userId uuid.UUID) {
+			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID) {
 				s.EXPECT().
-					GetById(gomock.Any(), userId).
+					GetByID(gomock.Any(), userID).
 					Return(repository.User{}, repository.ErrRecordNotFound)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
@@ -664,20 +665,20 @@ func TestHandler_getUserById(t *testing.T) {
 		},
 		{
 			name:   "error get user",
-			userId: user.ID,
+			userID: user.ID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
 				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, user.ID, time.Minute)
 			},
-			mockBehavior: func(s *mock_service.MockUsers, userId uuid.UUID) {
+			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID) {
 				s.EXPECT().
-					GetById(gomock.Any(), userId).
-					Return(repository.User{}, errInternalServErr)
+					GetByID(gomock.Any(), userID).
+					Return(repository.User{}, ErrInternalServerError)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
 				require.Equal(
 					t,
-					fmt.Sprintf(`{"message":"%s"}`, errInternalServErr),
+					fmt.Sprintf(`{"message":"%s"}`, ErrInternalServerError),
 					recorder.Body.String(),
 				)
 			},
@@ -693,7 +694,7 @@ func TestHandler_getUserById(t *testing.T) {
 			require.NoError(t, err)
 
 			usersService := mock_service.NewMockUsers(mockCtl)
-			testCase.mockBehavior(usersService, testCase.userId)
+			testCase.mockBehavior(usersService, testCase.userID)
 
 			services := &service.Services{Users: usersService}
 			handler := Handler{services: services}
@@ -702,12 +703,12 @@ func TestHandler_getUserById(t *testing.T) {
 			router.GET(
 				"/",
 				userIdentity(tokenManager),
-				handler.getUserById,
+				handler.getUserByID,
 			)
 
 			recorder := httptest.NewRecorder()
 			req := httptest.NewRequest(
-				"GET",
+				http.MethodGet,
 				"/",
 				nil,
 			)
@@ -722,15 +723,15 @@ func TestHandler_getUserById(t *testing.T) {
 }
 
 func TestHandler_updateUser(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockUsers, userId uuid.UUID, user domain.UserUpdate)
+	type mockBehavior func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UserUpdate)
 
-	userId, err := uuid.NewRandom()
+	userID, err := uuid.NewRandom()
 	require.NoError(t, err)
 
 	tests := []struct {
 		name         string
 		body         gin.H
-		userId       uuid.UUID
+		userID       uuid.UUID
 		user         domain.UserUpdate
 		setupAuth    func(t *testing.T, request *http.Request, tokenManager auth.Manager)
 		mockBehavior mockBehavior
@@ -743,16 +744,16 @@ func TestHandler_updateUser(t *testing.T) {
 				"username": "vanya",
 				"photo":    "",
 			},
-			userId: userId,
+			userID: userID,
 			user: domain.UserUpdate{
 				Username: "vanya",
 				Photo:    "",
 			},
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
-				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userId, time.Minute)
+				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userID, time.Minute)
 			},
-			mockBehavior: func(s *mock_service.MockUsers, userId uuid.UUID, user domain.UserUpdate) {
-				s.EXPECT().Update(gomock.Any(), userId, user).Return(nil)
+			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UserUpdate) {
+				s.EXPECT().Update(gomock.Any(), userID, user).Return(nil)
 			},
 			statusCode:   200,
 			responseBody: "",
@@ -763,16 +764,16 @@ func TestHandler_updateUser(t *testing.T) {
 				"username": "vanya",
 				"photo":    "https://photo.png",
 			},
-			userId: userId,
+			userID: userID,
 			user: domain.UserUpdate{
 				Username: "vanya",
 				Photo:    "https://photo.png",
 			},
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
-				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userId, time.Minute)
+				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userID, time.Minute)
 			},
-			mockBehavior: func(s *mock_service.MockUsers, userId uuid.UUID, user domain.UserUpdate) {
-				s.EXPECT().Update(gomock.Any(), userId, user).Return(nil)
+			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UserUpdate) {
+				s.EXPECT().Update(gomock.Any(), userID, user).Return(nil)
 			},
 			statusCode:   200,
 			responseBody: "",
@@ -783,13 +784,13 @@ func TestHandler_updateUser(t *testing.T) {
 				"username": "vanya",
 				"photo":    "https://photo.png",
 			},
-			userId: userId,
+			userID: userID,
 			user: domain.UserUpdate{
 				Username: "vanya",
 				Photo:    "",
 			},
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {},
-			mockBehavior: func(s *mock_service.MockUsers, userId uuid.UUID, user domain.UserUpdate) {
+			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UserUpdate) {
 				s.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			statusCode:   401,
@@ -801,19 +802,19 @@ func TestHandler_updateUser(t *testing.T) {
 				"username": "vanya",
 				"photo":    "",
 			},
-			userId: userId,
+			userID: userID,
 			user: domain.UserUpdate{
 				Username: "vanya",
 				Photo:    "",
 			},
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
-				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userId, time.Minute)
+				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userID, time.Minute)
 			},
-			mockBehavior: func(s *mock_service.MockUsers, userId uuid.UUID, user domain.UserUpdate) {
-				s.EXPECT().Update(gomock.Any(), userId, user).Return(errInternalServErr)
+			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UserUpdate) {
+				s.EXPECT().Update(gomock.Any(), userID, user).Return(ErrInternalServerError)
 			},
 			statusCode:   500,
-			responseBody: fmt.Sprintf(`{"message":"%s"}`, errInternalServErr),
+			responseBody: fmt.Sprintf(`{"message":"%s"}`, ErrInternalServerError),
 		},
 		{
 			name: "empty fields",
@@ -822,9 +823,9 @@ func TestHandler_updateUser(t *testing.T) {
 				"photo":    "",
 			},
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
-				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userId, time.Minute)
+				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userID, time.Minute)
 			},
-			mockBehavior: func(s *mock_service.MockUsers, userId uuid.UUID, user domain.UserUpdate) {
+			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UserUpdate) {
 				s.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			statusCode:   400,
@@ -841,7 +842,7 @@ func TestHandler_updateUser(t *testing.T) {
 			require.NoError(t, err)
 
 			usersService := mock_service.NewMockUsers(mockCtl)
-			testCase.mockBehavior(usersService, testCase.userId, testCase.user)
+			testCase.mockBehavior(usersService, testCase.userID, testCase.user)
 
 			services := &service.Services{Users: usersService}
 			handler := Handler{services: services}
@@ -858,7 +859,7 @@ func TestHandler_updateUser(t *testing.T) {
 
 			recorder := httptest.NewRecorder()
 			req := httptest.NewRequest(
-				"POST",
+				http.MethodPost,
 				"/update",
 				bytes.NewReader(data),
 			)
@@ -873,14 +874,14 @@ func TestHandler_updateUser(t *testing.T) {
 }
 
 func TestHandler_deleteUser(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockUsers, userId uuid.UUID)
+	type mockBehavior func(s *mock_service.MockUsers, userID uuid.UUID)
 
-	userId, err := uuid.NewRandom()
+	userID, err := uuid.NewRandom()
 	require.NoError(t, err)
 
 	tests := []struct {
 		name         string
-		userId       uuid.UUID
+		userID       uuid.UUID
 		setupAuth    func(t *testing.T, request *http.Request, tokenManager auth.Manager)
 		mockBehavior mockBehavior
 		statusCode   int
@@ -888,21 +889,21 @@ func TestHandler_deleteUser(t *testing.T) {
 	}{
 		{
 			name:   "ok",
-			userId: userId,
+			userID: userID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
-				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userId, time.Minute)
+				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userID, time.Minute)
 			},
-			mockBehavior: func(s *mock_service.MockUsers, userId uuid.UUID) {
-				s.EXPECT().Delete(gomock.Any(), userId).Return(nil)
+			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID) {
+				s.EXPECT().Delete(gomock.Any(), userID).Return(nil)
 			},
 			statusCode:   200,
 			responseBody: "",
 		},
 		{
 			name:      "no authorization",
-			userId:    userId,
+			userID:    userID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {},
-			mockBehavior: func(s *mock_service.MockUsers, userId uuid.UUID) {
+			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID) {
 				s.EXPECT().Delete(gomock.Any(), gomock.Any()).Times(0)
 			},
 			statusCode:   401,
@@ -910,11 +911,11 @@ func TestHandler_deleteUser(t *testing.T) {
 		},
 		{
 			name:   "user not found",
-			userId: userId,
+			userID: userID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
-				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userId, time.Minute)
+				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userID, time.Minute)
 			},
-			mockBehavior: func(s *mock_service.MockUsers, userId uuid.UUID) {
+			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID) {
 				s.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(repository.ErrRecordNotFound)
 			},
 			statusCode:   404,
@@ -922,15 +923,15 @@ func TestHandler_deleteUser(t *testing.T) {
 		},
 		{
 			name:   "error delete user",
-			userId: userId,
+			userID: userID,
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
-				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userId, time.Minute)
+				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userID, time.Minute)
 			},
-			mockBehavior: func(s *mock_service.MockUsers, userId uuid.UUID) {
-				s.EXPECT().Delete(gomock.Any(), userId).Return(errInternalServErr)
+			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID) {
+				s.EXPECT().Delete(gomock.Any(), userID).Return(ErrInternalServerError)
 			},
 			statusCode:   500,
-			responseBody: fmt.Sprintf(`{"message":"%s"}`, errInternalServErr),
+			responseBody: fmt.Sprintf(`{"message":"%s"}`, ErrInternalServerError),
 		},
 	}
 
@@ -943,7 +944,7 @@ func TestHandler_deleteUser(t *testing.T) {
 			require.NoError(t, err)
 
 			usersService := mock_service.NewMockUsers(mockCtl)
-			testCase.mockBehavior(usersService, testCase.userId)
+			testCase.mockBehavior(usersService, testCase.userID)
 
 			services := &service.Services{Users: usersService}
 			handler := Handler{services: services}
@@ -957,7 +958,7 @@ func TestHandler_deleteUser(t *testing.T) {
 
 			recorder := httptest.NewRecorder()
 			req := httptest.NewRequest(
-				"GET",
+				http.MethodGet,
 				"/delete",
 				nil,
 			)

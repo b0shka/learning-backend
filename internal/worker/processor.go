@@ -40,8 +40,6 @@ func NewRedisTaskProcessor(
 	emailConfig config.EmailConfig,
 	authConfig config.AuthConfig,
 ) TaskProcessor {
-	// redis.SetLogger(logger)
-
 	server := asynq.NewServer(
 		redisOpt,
 		asynq.Config{
@@ -51,9 +49,10 @@ func NewRedisTaskProcessor(
 			},
 			ErrorHandler: asynq.ErrorHandlerFunc(func(ctx context.Context, task *asynq.Task, err error) {
 				var data map[string]interface{}
-				error := json.Unmarshal(task.Payload(), &data)
-				if error != nil {
-					logger.Errorf("Error decode payload: %s", error.Error())
+				verr := json.Unmarshal(task.Payload(), &data)
+				if verr != nil {
+					logger.Errorf("Error decode payload: %s", verr.Error())
+
 					return
 				}
 

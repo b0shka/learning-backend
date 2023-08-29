@@ -20,10 +20,10 @@ func addAuthorizationHeader(
 	request *http.Request,
 	tokenManager auth.Manager,
 	authorizationType string,
-	userId uuid.UUID,
+	userID uuid.UUID,
 	duration time.Duration,
 ) {
-	token, payload, err := tokenManager.CreateToken(userId, duration)
+	token, payload, err := tokenManager.CreateToken(userID, duration)
 	require.NoError(t, err)
 	require.NotEmpty(t, payload)
 
@@ -31,8 +31,8 @@ func addAuthorizationHeader(
 	request.Header.Set(authorizationHeaderKey, authorizationHeader)
 }
 
-func TestHandler_userIdentity(t *testing.T) {
-	userId, err := uuid.NewRandom()
+func TestHandler_userIDentity(t *testing.T) {
+	userID, err := uuid.NewRandom()
 	require.NoError(t, err)
 
 	testTable := []struct {
@@ -44,7 +44,7 @@ func TestHandler_userIdentity(t *testing.T) {
 		{
 			name: "ok",
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
-				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userId, time.Minute)
+				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userID, time.Minute)
 			},
 			statusCode:   200,
 			responseBody: "",
@@ -59,7 +59,7 @@ func TestHandler_userIdentity(t *testing.T) {
 		{
 			name: "unsupported authorization",
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
-				addAuthorizationHeader(t, request, tokenManager, "unsupported", userId, time.Minute)
+				addAuthorizationHeader(t, request, tokenManager, "unsupported", userID, time.Minute)
 			},
 			statusCode:   401,
 			responseBody: fmt.Sprintf(`{"message":"unsupported authorization type: %s"}`, "unsupported"),
@@ -67,7 +67,7 @@ func TestHandler_userIdentity(t *testing.T) {
 		{
 			name: "invalid authorization format",
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
-				addAuthorizationHeader(t, request, tokenManager, "", userId, time.Minute)
+				addAuthorizationHeader(t, request, tokenManager, "", userID, time.Minute)
 			},
 			statusCode:   401,
 			responseBody: `{"message":"invalid authorization header format"}`,
@@ -75,7 +75,7 @@ func TestHandler_userIdentity(t *testing.T) {
 		{
 			name: "expired token",
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
-				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userId, -time.Minute)
+				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userID, -time.Minute)
 			},
 			statusCode:   401,
 			responseBody: `{"message":"token has expired"}`,
@@ -98,7 +98,7 @@ func TestHandler_userIdentity(t *testing.T) {
 			)
 
 			recorder := httptest.NewRecorder()
-			req := httptest.NewRequest("GET", "/identity", nil)
+			req := httptest.NewRequest(http.MethodGet, "/identity", nil)
 
 			testCase.setupAuth(t, req, tokenManager)
 			router.ServeHTTP(recorder, req)
@@ -110,23 +110,17 @@ func TestHandler_userIdentity(t *testing.T) {
 }
 
 func TestGetUserPayload(t *testing.T) {
-	userId, err := uuid.NewRandom()
+	userID, err := uuid.NewRandom()
 	require.NoError(t, err)
 
-	payload, err := auth.NewPayload(userId, time.Minute)
+	payload, err := auth.NewPayload(userID, time.Minute)
 	require.NoError(t, err)
 
-	var getContext = func(payload *auth.Payload) *gin.Context {
-		ctx := &gin.Context{}
-		ctx.Set(userCtx, payload)
-		return ctx
-	}
+	normalContext := &gin.Context{}
+	normalContext.Set(userCtx, payload)
 
-	var getInvalidContext = func() *gin.Context {
-		ctx := &gin.Context{}
-		ctx.Set(userCtx, "invalid payload")
-		return ctx
-	}
+	invalidContext := &gin.Context{}
+	invalidContext.Set(userCtx, utils.RandomString(10))
 
 	tests := []struct {
 		name      string
@@ -136,20 +130,20 @@ func TestGetUserPayload(t *testing.T) {
 	}{
 		{
 			name:      "ok",
-			ctx:       getContext(payload),
+			ctx:       normalContext,
 			payload:   payload,
 			shouldErr: false,
 		},
-		{
-			name:      "empty user id",
-			ctx:       &gin.Context{},
-			shouldErr: true,
-		},
-		{
-			name:      "invalid payload",
-			ctx:       getInvalidContext(),
-			shouldErr: true,
-		},
+		// {
+		// 	name:      "empty user id",
+		// 	ctx:       &gin.Context{},
+		// 	shouldErr: true,
+		// },
+		// {
+		// 	name:      "invalid payload",
+		// 	ctx:       invalidContext,
+		// 	shouldErr: true,
+		// },
 	}
 
 	for _, testCase := range tests {

@@ -23,7 +23,7 @@ func (h *Handler) initUsersRoutes(api *gin.RouterGroup) {
 
 		account := users.Group("/").Use(userIdentity(h.tokenManager))
 		{
-			account.GET("/", h.getUserById)
+			account.GET("/", h.getUserByID)
 			account.POST("/update", h.updateUser)
 			account.GET("/delete", h.deleteUser)
 		}
@@ -50,12 +50,14 @@ func (h *Handler) sendCodeEmail(c *gin.Context) {
 	var inp userSendCodeRequest
 	if err := c.BindJSON(&inp); err != nil {
 		newResponse(c, http.StatusBadRequest, domain.ErrInvalidInput.Error())
+
 		return
 	}
 
 	err := h.services.Users.SendCodeEmail(c, inp.Email)
 	if err != nil {
 		newResponse(c, http.StatusInternalServerError, err.Error())
+
 		return
 	}
 
@@ -65,7 +67,7 @@ func (h *Handler) sendCodeEmail(c *gin.Context) {
 type userSignInResponse struct {
 	SessionID             uuid.UUID   `json:"session_id"`
 	RefreshToken          string      `json:"refresh_token"`
-	RefreshTokenExpiresAt time.Time   `json:"refresh_token_expites_at"`
+	RefreshTokenExpiresAt time.Time   `json:"refresh_token_expires_at"`
 	AccessToken           string      `json:"access_token"`
 	AccessTokenExpiresAt  time.Time   `json:"access_token_expires_at"`
 	User                  domain.User `json:"user"`
@@ -87,6 +89,7 @@ func (h *Handler) userSignIn(c *gin.Context) {
 	var inp domain.UserSignIn
 	if err := c.BindJSON(&inp); err != nil {
 		newResponse(c, http.StatusBadRequest, domain.ErrInvalidInput.Error())
+
 		return
 	}
 
@@ -94,9 +97,12 @@ func (h *Handler) userSignIn(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, domain.ErrSecretCodeInvalid) || errors.Is(err, domain.ErrSecretCodeExpired) {
 			newResponse(c, http.StatusUnauthorized, err.Error())
+
 			return
 		}
+
 		newResponse(c, http.StatusInternalServerError, err.Error())
+
 		return
 	}
 
@@ -141,6 +147,7 @@ func (h *Handler) refreshToken(c *gin.Context) {
 	var inp refreshTokenRequest
 	if err := c.BindJSON(&inp); err != nil {
 		newResponse(c, http.StatusBadRequest, domain.ErrInvalidInput.Error())
+
 		return
 	}
 
@@ -148,18 +155,22 @@ func (h *Handler) refreshToken(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, domain.ErrSessionNotFound) {
 			newResponse(c, http.StatusNotFound, err.Error())
+
 			return
 		}
+
 		if errors.Is(err, domain.ErrSessionBlocked) ||
 			errors.Is(err, domain.ErrIncorrectSessionUser) ||
 			errors.Is(err, domain.ErrMismatchedSession) ||
 			errors.Is(err, domain.ErrExpiredToken) ||
 			errors.Is(err, domain.ErrInvalidToken) {
 			newResponse(c, http.StatusUnauthorized, err.Error())
+
 			return
 		}
 
 		newResponse(c, http.StatusInternalServerError, err.Error())
+
 		return
 	}
 
@@ -181,26 +192,30 @@ func (h *Handler) refreshToken(c *gin.Context) {
 //		@Failure		500		{object}	response
 //		@Failure		default	{object}	response
 //		@Router			/user/ [get]
-func (h *Handler) getUserById(c *gin.Context) {
+func (h *Handler) getUserByID(c *gin.Context) {
+	userPayload, err := getUserPaylaod(c)
+	if err != nil {
+		newResponse(c, http.StatusInternalServerError, err.Error())
+
+		return
+	}
+
 	// id, err := parseIdFromPath(c, "id")
 	// if err != nil {
 	// 	h.newResponse(c, http.StatusBadRequest, domain.ErrInvalidInput.Error())
 	// 	return
 	// }
 
-	userPayload, err := getUserPaylaod(c)
-	if err != nil {
-		newResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	user, err := h.services.Users.GetById(c, userPayload.UserID)
+	user, err := h.services.Users.GetByID(c, userPayload.UserID)
 	if err != nil {
 		if errors.Is(err, repository.ErrRecordNotFound) {
 			newResponse(c, http.StatusNotFound, domain.ErrUserNotFound.Error())
+
 			return
 		}
+
 		newResponse(c, http.StatusInternalServerError, err.Error())
+
 		return
 	}
 
@@ -230,17 +245,20 @@ func (h *Handler) updateUser(c *gin.Context) {
 	userPayload, err := getUserPaylaod(c)
 	if err != nil {
 		newResponse(c, http.StatusInternalServerError, err.Error())
+
 		return
 	}
 
 	var inp domain.UserUpdate
 	if err := c.BindJSON(&inp); err != nil {
 		newResponse(c, http.StatusBadRequest, domain.ErrInvalidInput.Error())
+
 		return
 	}
 
 	if err = h.services.Users.Update(c, userPayload.UserID, inp); err != nil {
 		newResponse(c, http.StatusInternalServerError, err.Error())
+
 		return
 	}
 
@@ -263,15 +281,19 @@ func (h *Handler) deleteUser(c *gin.Context) {
 	userPayload, err := getUserPaylaod(c)
 	if err != nil {
 		newResponse(c, http.StatusInternalServerError, err.Error())
+
 		return
 	}
 
 	if err = h.services.Users.Delete(c, userPayload.UserID); err != nil {
 		if errors.Is(err, repository.ErrRecordNotFound) {
 			newResponse(c, http.StatusNotFound, domain.ErrUserNotFound.Error())
+
 			return
 		}
+
 		newResponse(c, http.StatusInternalServerError, err.Error())
+
 		return
 	}
 

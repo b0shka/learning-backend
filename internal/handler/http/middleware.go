@@ -1,11 +1,11 @@
 package http
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
+	"github.com/b0shka/backend/internal/domain"
 	"github.com/b0shka/backend/pkg/auth"
 	"github.com/gin-gonic/gin"
 )
@@ -23,7 +23,7 @@ func corsMiddleware(c *gin.Context) {
 	c.Header("Access-Control-Allow-Headers", "*")
 	c.Header("Content-Type", "application/json")
 
-	if c.Request.Method != "OPTIONS" {
+	if c.Request.Method != http.MethodOptions {
 		c.Next()
 	} else {
 		c.AbortWithStatus(http.StatusOK)
@@ -35,6 +35,7 @@ func userIdentity(tokenManager auth.Manager) gin.HandlerFunc {
 		payload, err := parseAuthHeader(c, tokenManager)
 		if err != nil {
 			newResponse(c, http.StatusUnauthorized, err.Error())
+
 			return
 		}
 
@@ -45,12 +46,12 @@ func userIdentity(tokenManager auth.Manager) gin.HandlerFunc {
 func parseAuthHeader(c *gin.Context, tokenManager auth.Manager) (*auth.Payload, error) {
 	authorizationHeader := c.GetHeader(authorizationHeaderKey)
 	if len(authorizationHeader) == 0 {
-		return nil, errors.New("empty authorization header")
+		return nil, domain.ErrEmptyAuthHeader
 	}
 
 	headerParts := strings.Fields(authorizationHeader)
 	if len(headerParts) < 2 {
-		return nil, errors.New("invalid authorization header format")
+		return nil, domain.ErrInvalidAuthHeaderFormat
 	}
 
 	authorizationType := headerParts[0]
@@ -58,8 +59,7 @@ func parseAuthHeader(c *gin.Context, tokenManager auth.Manager) (*auth.Payload, 
 		return nil, fmt.Errorf("unsupported authorization type: %s", authorizationType)
 	}
 
-	accessToken := headerParts[1]
-	return tokenManager.VerifyToken(accessToken)
+	return tokenManager.VerifyToken(headerParts[1])
 }
 
 func getUserPaylaod(c *gin.Context) (*auth.Payload, error) {

@@ -27,9 +27,15 @@ func createRandomSession(t *testing.T, user User) Session {
 		UserID:       user.ID,
 		RefreshToken: refreshToken,
 		UserAgent:    utils.RandomString(20),
-		ClientIp:     fmt.Sprintf("%d:%d:%d:%d", utils.RandomInt(1, 255), utils.RandomInt(1, 255), utils.RandomInt(1, 255), utils.RandomInt(1, 255)),
-		IsBlocked:    false,
-		ExpiresAt:    time.Now().Add(time.Hour),
+		ClientIp: fmt.Sprintf(
+			"%d:%d:%d:%d",
+			utils.RandomInt(1, 255),
+			utils.RandomInt(1, 255),
+			utils.RandomInt(1, 255),
+			utils.RandomInt(1, 255),
+		),
+		IsBlocked: false,
+		ExpiresAt: time.Now().Add(time.Hour),
 	}
 
 	session, err := testStore.CreateSession(context.Background(), arg)

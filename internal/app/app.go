@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -21,7 +20,7 @@ import (
 	"github.com/b0shka/backend/pkg/hash"
 	"github.com/b0shka/backend/pkg/logger"
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres" // for connect to postgres
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/hibiken/asynq"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -32,28 +31,31 @@ import (
 //	@description	REST API for Service App
 
 //	@host		localhost:8080
-//	@BasePath	/api
+//	@BasePath	/api/v1
 
 //	@securityDefinitions.apikey	UsersAuth
 //	@in							header
 //	@name						Authorization
 
-func Run(configPath string) {
+func Run(configPath string) { //nolint: funlen
 	cfg, err := config.InitConfig(configPath)
 	if err != nil {
 		logger.Error(err)
+
 		return
 	}
 
 	hasher, err := hash.NewSHA256Hasher(cfg.Auth.CodeSalt)
 	if err != nil {
 		logger.Error(err)
+
 		return
 	}
 
 	tokenManager, err := auth.NewPasetoManager(cfg.Auth.SecretKey)
 	if err != nil {
 		logger.Error(err)
+
 		return
 	}
 
@@ -61,13 +63,16 @@ func Run(configPath string) {
 	if err != nil {
 		logger.Errorf("cannot connect to database: %s", err)
 	}
+
 	logger.Info("Success connect to database")
 
 	err = runDBMigration(cfg.Postgres.MigrationURL, cfg.Postgres.URL)
 	if err != nil {
 		logger.Error(err)
+
 		return
 	}
+
 	logger.Info("db migrated successfully")
 
 	repos := repository.NewStore(connPool)
@@ -76,6 +81,7 @@ func Run(configPath string) {
 		Addr: cfg.Redis.Address,
 	}
 	taskDistributor := worker.NewRedisTaskDistributor(redisOpt)
+
 	go runTaskProcessor(redisOpt, repos, hasher, cfg)
 
 	services := service.NewServices(service.Deps{
@@ -95,6 +101,7 @@ func Run(configPath string) {
 			logger.Errorf("error occurred while running http server: %s\n", err.Error())
 		}
 	}()
+
 	logger.Info("Server started")
 
 	quit := make(chan os.Signal, 1)
@@ -103,11 +110,13 @@ func Run(configPath string) {
 
 	const timeout = 5 * time.Second
 	ctx, shutdown := context.WithTimeout(context.Background(), timeout)
+
 	defer shutdown()
 
 	if err := srv.Stop(ctx); err != nil {
 		logger.Errorf("failed to stop server: %v", err)
 	}
+
 	logger.Info("Server stoped")
 
 	connPool.Close()
@@ -117,11 +126,11 @@ func Run(configPath string) {
 func runDBMigration(migrationURL, dbSource string) error {
 	migration, err := migrate.New(migrationURL, dbSource)
 	if err != nil {
-		return fmt.Errorf("connot create new migarte instance: %s", err.Error())
+		return err
 	}
 
-	if err := migration.Up(); err != nil && err != migrate.ErrNoChange {
-		return fmt.Errorf("failed to run migrate up: %s", err.Error())
+	if err := migration.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return err
 	}
 
 	return nil
@@ -149,10 +158,10 @@ func runTaskProcessor(
 		cfg.Email,
 		cfg.Auth,
 	)
+
 	logger.Info("start task processor")
 
-	err := taskProcessor.Start()
-	if err != nil {
+	if err := taskProcessor.Start(); err != nil {
 		logger.Error("failed to start task processor")
 	}
 }

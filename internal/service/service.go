@@ -19,19 +19,19 @@ type Tokens struct {
 	RefreshToken          string    `json:"refresh_token"`
 	RefreshTokenExpiresAt time.Time `json:"refresh_token_expires_at"`
 	AccessToken           string    `json:"access_token"`
-	AccessTokenExpiresAt  time.Time `json:"accesss_token_expires_at"`
+	AccessTokenExpiresAt  time.Time `json:"access_token_expires_at"`
 }
 
 type RefreshToken struct {
 	AccessToken          string    `json:"access_token"`
-	AccessTokenExpiresAt time.Time `json:"accesss_token_expires_at"`
+	AccessTokenExpiresAt time.Time `json:"access_token_expires_at"`
 }
 
 type Users interface {
 	SendCodeEmail(ctx context.Context, email string) error
 	SignIn(ctx *gin.Context, inp domain.UserSignIn) (repository.User, Tokens, error)
 	RefreshToken(ctx context.Context, refreshToken string) (RefreshToken, error)
-	GetById(ctx context.Context, id uuid.UUID) (repository.User, error)
+	GetByID(ctx context.Context, id uuid.UUID) (repository.User, error)
 	Update(ctx context.Context, id uuid.UUID, user domain.UserUpdate) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }

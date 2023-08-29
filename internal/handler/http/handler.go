@@ -8,8 +8,6 @@ import (
 	"github.com/b0shka/backend/internal/config"
 	"github.com/b0shka/backend/internal/service"
 	"github.com/b0shka/backend/pkg/auth"
-
-	_ "github.com/b0shka/backend/docs"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -40,13 +38,14 @@ func (h *Handler) InitRoutes(cfg *config.Config) *gin.Engine {
 	)
 
 	docs.SwaggerInfo.Host = fmt.Sprintf("%s:%s", cfg.HTTP.Host, cfg.HTTP.Port)
+
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.GET("/ping", func(c *gin.Context) {
-		c.Status(http.StatusOK)
+		c.String(http.StatusOK, "pong")
 	})
 
-	api := router.Group("/api")
+	api := router.Group("/api/v1")
 	{
 		h.initUsersRoutes(api)
 	}

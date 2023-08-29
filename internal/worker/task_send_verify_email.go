@@ -39,6 +39,7 @@ func (distributor *RedisTaskDistributor) DistributeTaskSendVerifyEmail(
 
 	logger.Infof("enqueued task: type - %s, payload - %v, queue - %s, max_retry - %d",
 		task.Type(), payload, info.Queue, info.MaxRetry)
+
 	return nil
 }
 
@@ -49,6 +50,7 @@ func (processor *RedisTaskProcessor) ProcessTaskSendVerifyEmail(ctx context.Cont
 	}
 
 	secretCodeStr := strconv.Itoa(int(payload.SecretCode))
+
 	secretCodeHash, err := processor.hasher.HashCode(secretCodeStr)
 	if err != nil {
 		return err
@@ -71,7 +73,7 @@ func (processor *RedisTaskProcessor) ProcessTaskSendVerifyEmail(ctx context.Cont
 		return err
 	}
 
-	err = processor.emailService.SendEmailMessage(
+	err = processor.emailService.SendEmail(
 		payload.Email,
 		processor.emailConfig.Templates.VerifyEmail,
 		processor.emailConfig.Subjects.VerifyEmail,
@@ -83,5 +85,6 @@ func (processor *RedisTaskProcessor) ProcessTaskSendVerifyEmail(ctx context.Cont
 
 	logger.Infof("processed task: type - %s, payload - %v, email - %s",
 		task.Type(), payload, payload.Email)
+
 	return nil
 }

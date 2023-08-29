@@ -10,7 +10,9 @@ import (
 	"github.com/google/uuid"
 )
 
-var minSecretKeyLength = 32
+const (
+	minSecretKeyLength = 32
+)
 
 type JWTManager struct {
 	secretKey string
@@ -24,14 +26,15 @@ func NewJWTManager(secretKey string) (Manager, error) {
 	return &JWTManager{secretKey: secretKey}, nil
 }
 
-func (m *JWTManager) CreateToken(userId uuid.UUID, ducation time.Duration) (string, *Payload, error) {
-	payload, err := NewPayload(userId, ducation)
+func (m *JWTManager) CreateToken(userID uuid.UUID, ducation time.Duration) (string, *Payload, error) {
+	payload, err := NewPayload(userID, ducation)
 	if err != nil {
 		return "", nil, err
 	}
 
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
 	token, err := jwtToken.SignedString([]byte(m.secretKey))
+
 	return token, payload, err
 }
 
@@ -47,10 +50,13 @@ func (m *JWTManager) VerifyToken(accessToken string) (*Payload, error) {
 
 	jwtToken, err := jwt.ParseWithClaims(accessToken, &Payload{}, keyFunc)
 	if err != nil {
-		verr, ok := err.(*jwt.ValidationError)
+		var verr *jwt.ValidationError
+
+		ok := errors.As(err, &verr)
 		if ok && errors.Is(verr.Inner, domain.ErrExpiredToken) {
 			return nil, domain.ErrExpiredToken
 		}
+
 		return nil, domain.ErrInvalidToken
 	}
 

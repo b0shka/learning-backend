@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var errInternalServErr = errors.New("test: internal server error")
+var ErrInternalServerError = errors.New("test: internal server error")
 
 func mockUserService(t *testing.T) (*service.UsersService, *mock_repository.MockStore) {
 	repoCtl := gomock.NewController(t)
@@ -115,10 +115,10 @@ func TestUsersService_SignInErrGetEmail(t *testing.T) {
 	ctx, _ := gin.CreateTestContext(w)
 
 	userRepo.EXPECT().GetVerifyEmail(ctx, gomock.Any()).
-		Return(repository.VerifyEmail{}, errInternalServErr)
+		Return(repository.VerifyEmail{}, ErrInternalServerError)
 
 	user, res, err := userService.SignIn(ctx, domain.UserSignIn{})
-	require.True(t, errors.Is(err, errInternalServErr))
+	require.True(t, errors.Is(err, ErrInternalServerError))
 	require.IsType(t, service.Tokens{}, res)
 	require.IsType(t, repository.User{}, user)
 }
@@ -137,10 +137,10 @@ func TestUsersService_SignInErrDeleteEmail(t *testing.T) {
 			},
 			nil,
 		)
-	userRepo.EXPECT().DeleteVerifyEmailById(ctx, gomock.Any()).Return(errInternalServErr)
+	userRepo.EXPECT().DeleteVerifyEmailById(ctx, gomock.Any()).Return(ErrInternalServerError)
 
 	user, res, err := userService.SignIn(ctx, domain.UserSignIn{})
-	require.True(t, errors.Is(err, errInternalServErr))
+	require.True(t, errors.Is(err, ErrInternalServerError))
 	require.IsType(t, service.Tokens{}, res)
 	require.IsType(t, repository.User{}, user)
 }
@@ -161,10 +161,10 @@ func TestUsersService_SignInErrGetUser(t *testing.T) {
 		)
 	userRepo.EXPECT().DeleteVerifyEmailById(ctx, gomock.Any())
 	userRepo.EXPECT().GetUserByEmail(ctx, gomock.Any()).
-		Return(repository.User{}, errInternalServErr)
+		Return(repository.User{}, ErrInternalServerError)
 
 	user, res, err := userService.SignIn(ctx, domain.UserSignIn{})
-	require.True(t, errors.Is(err, errInternalServErr))
+	require.True(t, errors.Is(err, ErrInternalServerError))
 	require.IsType(t, service.Tokens{}, res)
 	require.IsType(t, repository.User{}, user)
 }
@@ -186,10 +186,10 @@ func TestUsersService_SignInErrGetUser(t *testing.T) {
 // 	userRepo.EXPECT().DeleteVerifyEmailById(ctx, gomock.Any())
 // 	userRepo.EXPECT().GetUserByEmail(ctx, gomock.Any())
 // 	userRepo.EXPECT().CreateSession(ctx, gomock.Any()).
-// 		Return(repository.Session{}, errInternalServErr)
+// 		Return(repository.Session{}, ErrInternalServerError)
 
 // 	res, err := userService.SignIn(ctx, service.UserSignInInput{})
-// 	require.True(t, errors.Is(err, errInternalServErr))
+// 	require.True(t, errors.Is(err, ErrInternalServerError))
 // 	require.IsType(t, service.Tokens{}, res)
 // }
 
@@ -197,13 +197,13 @@ func TestUsersService_SignInErrGetUser(t *testing.T) {
 // 	userService, userRepo := mockUserService(t)
 
 // 	duration := time.Minute
-// 	userId, err := uuid.NewRandom()
+// 	userID, err := uuid.NewRandom()
 // 	require.NoError(t, err)
 
 // 	tokenManager, err := auth.NewPasetoManager(utils.RandomString(32))
 // 	require.NoError(t, err)
 
-// 	token, payload, err := tokenManager.CreateToken(userId, duration)
+// 	token, payload, err := tokenManager.CreateToken(userID, duration)
 // 	require.NoError(t, err)
 // 	require.NotEmpty(t, payload)
 
@@ -221,7 +221,7 @@ func TestUsersService_Get(t *testing.T) {
 	ctx := context.Background()
 	userRepo.EXPECT().GetUserById(ctx, gomock.Any())
 
-	res, err := userService.GetById(ctx, uuid.UUID{})
+	res, err := userService.GetByID(ctx, uuid.UUID{})
 	require.NoError(t, err)
 	require.IsType(t, repository.User{}, res)
 }
@@ -230,10 +230,10 @@ func TestUsersService_GetErr(t *testing.T) {
 	userService, userRepo := mockUserService(t)
 
 	ctx := context.Background()
-	userRepo.EXPECT().GetUserById(ctx, gomock.Any()).Return(repository.User{}, errInternalServErr)
+	userRepo.EXPECT().GetUserById(ctx, gomock.Any()).Return(repository.User{}, ErrInternalServerError)
 
-	res, err := userService.GetById(ctx, uuid.UUID{})
-	require.True(t, errors.Is(err, errInternalServErr))
+	res, err := userService.GetByID(ctx, uuid.UUID{})
+	require.True(t, errors.Is(err, ErrInternalServerError))
 	require.IsType(t, repository.User{}, res)
 }
 
@@ -251,10 +251,10 @@ func TestUsersService_UpdateErr(t *testing.T) {
 	userService, userRepo := mockUserService(t)
 
 	ctx := context.Background()
-	userRepo.EXPECT().UpdateUser(ctx, gomock.Any()).Return(errInternalServErr)
+	userRepo.EXPECT().UpdateUser(ctx, gomock.Any()).Return(ErrInternalServerError)
 
 	err := userService.Update(ctx, uuid.UUID{}, domain.UserUpdate{})
-	require.True(t, errors.Is(err, errInternalServErr))
+	require.True(t, errors.Is(err, ErrInternalServerError))
 }
 
 func TestUsersService_Delete(t *testing.T) {
@@ -274,10 +274,10 @@ func TestUsersService_DeleteErrDelSession(t *testing.T) {
 	userService, userRepo := mockUserService(t)
 
 	ctx := context.Background()
-	userRepo.EXPECT().DeleteSession(ctx, gomock.Any()).Return(errInternalServErr)
+	userRepo.EXPECT().DeleteSession(ctx, gomock.Any()).Return(ErrInternalServerError)
 
 	err := userService.Delete(ctx, uuid.UUID{})
-	require.True(t, errors.Is(err, errInternalServErr))
+	require.True(t, errors.Is(err, ErrInternalServerError))
 }
 
 func TestUsersService_DeleteErrGetUser(t *testing.T) {
@@ -286,10 +286,10 @@ func TestUsersService_DeleteErrGetUser(t *testing.T) {
 	ctx := context.Background()
 	userRepo.EXPECT().DeleteSession(ctx, gomock.Any())
 	userRepo.EXPECT().GetUserById(ctx, gomock.Any()).
-		Return(repository.User{}, errInternalServErr)
+		Return(repository.User{}, ErrInternalServerError)
 
 	err := userService.Delete(ctx, uuid.UUID{})
-	require.True(t, errors.Is(err, errInternalServErr))
+	require.True(t, errors.Is(err, ErrInternalServerError))
 }
 
 func TestUsersService_DeleteErrDelVerEmail(t *testing.T) {
@@ -298,10 +298,10 @@ func TestUsersService_DeleteErrDelVerEmail(t *testing.T) {
 	ctx := context.Background()
 	userRepo.EXPECT().DeleteSession(ctx, gomock.Any())
 	userRepo.EXPECT().GetUserById(ctx, gomock.Any())
-	userRepo.EXPECT().DeleteVerifyEmailByEmail(ctx, gomock.Any()).Return(errInternalServErr)
+	userRepo.EXPECT().DeleteVerifyEmailByEmail(ctx, gomock.Any()).Return(ErrInternalServerError)
 
 	err := userService.Delete(ctx, uuid.UUID{})
-	require.True(t, errors.Is(err, errInternalServErr))
+	require.True(t, errors.Is(err, ErrInternalServerError))
 }
 
 func TestUsersService_DeleteErrDelUser(t *testing.T) {
@@ -311,8 +311,8 @@ func TestUsersService_DeleteErrDelUser(t *testing.T) {
 	userRepo.EXPECT().DeleteSession(ctx, gomock.Any())
 	userRepo.EXPECT().GetUserById(ctx, gomock.Any())
 	userRepo.EXPECT().DeleteVerifyEmailByEmail(ctx, gomock.Any())
-	userRepo.EXPECT().DeleteUser(ctx, gomock.Any()).Return(errInternalServErr)
+	userRepo.EXPECT().DeleteUser(ctx, gomock.Any()).Return(ErrInternalServerError)
 
 	err := userService.Delete(ctx, uuid.UUID{})
-	require.True(t, errors.Is(err, errInternalServErr))
+	require.True(t, errors.Is(err, ErrInternalServerError))
 }

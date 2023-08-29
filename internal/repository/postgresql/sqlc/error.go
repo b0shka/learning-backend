@@ -19,5 +19,6 @@ func ErrorCode(err error) string {
 	if errors.As(err, &pgErr) {
 		return pgErr.Code
 	}
+
 	return ""
 }

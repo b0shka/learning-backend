@@ -14,6 +14,7 @@ const (
 
 func NewClient(uri string) (*mongo.Client, error) {
 	opts := options.Client().ApplyURI(uri)
+
 	client, err := mongo.NewClient(opts)
 	if err != nil {
 		return nil, err

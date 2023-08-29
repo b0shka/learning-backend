@@ -84,8 +84,7 @@ func InitConfig(configPath string) (*Config, error) {
 		return nil, err
 	}
 
-	env := os.Getenv("APP_ENV")
-	if env == "local" {
+	if env := os.Getenv("APP_ENV"); env == "local" {
 		if err := godotenv.Load(); err != nil {
 			return nil, err
 		}
@@ -102,9 +101,5 @@ func parseConfigFile(folder string) error {
 	viper.AddConfigPath(folder)
 	viper.SetConfigName("main")
 
-	if err := viper.ReadInConfig(); err != nil {
-		return err
-	}
-
-	return nil
+	return viper.ReadInConfig()
 }

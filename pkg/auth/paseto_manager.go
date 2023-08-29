@@ -26,13 +26,14 @@ func NewPasetoManager(symmetricKey string) (Manager, error) {
 	}, nil
 }
 
-func (m *PasetoManager) CreateToken(userId uuid.UUID, ducation time.Duration) (string, *Payload, error) {
-	payload, err := NewPayload(userId, ducation)
+func (m *PasetoManager) CreateToken(userID uuid.UUID, ducation time.Duration) (string, *Payload, error) {
+	payload, err := NewPayload(userID, ducation)
 	if err != nil {
 		return "", nil, err
 	}
 
 	token, err := m.paseto.Encrypt(m.symmetricKey, payload, nil)
+
 	return token, payload, err
 }
 
