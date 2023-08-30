@@ -12,7 +12,7 @@ import (
 	"github.com/b0shka/backend/internal/worker"
 	"github.com/b0shka/backend/pkg/auth"
 	"github.com/b0shka/backend/pkg/hash"
-	"github.com/b0shka/backend/pkg/utils"
+	"github.com/b0shka/backend/pkg/otp"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
@@ -27,6 +27,7 @@ type UsersService struct {
 	repo            repository.Store
 	hasher          hash.Hasher
 	tokenManager    auth.Manager
+	otpGenerator    otp.Generator
 	authConfig      config.AuthConfig
 	taskDistributor worker.TaskDistributor
 }
@@ -35,6 +36,7 @@ func NewUsersService(
 	repo repository.Store,
 	hasher hash.Hasher,
 	tokenManager auth.Manager,
+	otpGenerator otp.Generator,
 	authConfig config.AuthConfig,
 	taskDistributor worker.TaskDistributor,
 ) *UsersService {
@@ -42,6 +44,7 @@ func NewUsersService(
 		repo:            repo,
 		hasher:          hasher,
 		tokenManager:    tokenManager,
+		otpGenerator:    otpGenerator,
 		authConfig:      authConfig,
 		taskDistributor: taskDistributor,
 	}
@@ -66,7 +69,7 @@ func (s *UsersService) SendCodeEmail(ctx context.Context, email string) error {
 		}
 	}
 
-	secretCode := utils.RandomInt(100000, 999999)
+	secretCode := s.otpGenerator.RandomCode(6)
 	taskPayload := &worker.PayloadSendVerifyEmail{
 		Email:      email,
 		SecretCode: secretCode,

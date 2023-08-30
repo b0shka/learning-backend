@@ -17,7 +17,7 @@ type SHA256Hasher struct {
 	salt string
 }
 
-func NewSHA256Hasher(salt string) (*SHA256Hasher, error) {
+func NewSHA256Hasher(salt string) (Hasher, error) {
 	if len(salt) < minSaltLength {
 		return nil, fmt.Errorf("invalid salt length: must be at least %d characters", minSaltLength)
 	}

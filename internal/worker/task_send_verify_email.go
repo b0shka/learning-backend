@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"time"
 
 	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
@@ -17,7 +16,7 @@ const TaskSendVerifyEmail = "task:send_verify_email"
 
 type PayloadSendVerifyEmail struct {
 	Email      string `json:"email"`
-	SecretCode int32  `json:"secret_code"`
+	SecretCode string `json:"secret_code"`
 }
 
 func (distributor *RedisTaskDistributor) DistributeTaskSendVerifyEmail(
@@ -49,9 +48,7 @@ func (processor *RedisTaskProcessor) ProcessTaskSendVerifyEmail(ctx context.Cont
 		return fmt.Errorf("failed to unmarshal payload: %w", asynq.SkipRetry)
 	}
 
-	secretCodeStr := strconv.Itoa(int(payload.SecretCode))
-
-	secretCodeHash, err := processor.hasher.HashCode(secretCodeStr)
+	secretCodeHash, err := processor.hasher.HashCode(payload.SecretCode)
 	if err != nil {
 		return err
 	}

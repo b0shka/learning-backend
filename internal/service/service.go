@@ -10,6 +10,7 @@ import (
 	"github.com/b0shka/backend/internal/worker"
 	"github.com/b0shka/backend/pkg/auth"
 	"github.com/b0shka/backend/pkg/hash"
+	"github.com/b0shka/backend/pkg/otp"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -44,6 +45,7 @@ type Deps struct {
 	Repos           repository.Store
 	Hasher          hash.Hasher
 	TokenManager    auth.Manager
+	OTPGenerator    otp.Generator
 	AuthConfig      config.AuthConfig
 	TaskDistributor worker.TaskDistributor
 }
@@ -54,6 +56,7 @@ func NewServices(deps Deps) *Services {
 			deps.Repos,
 			deps.Hasher,
 			deps.TokenManager,
+			deps.OTPGenerator,
 			deps.AuthConfig,
 			deps.TaskDistributor,
 		),

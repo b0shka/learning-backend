@@ -15,6 +15,7 @@ import (
 	mock_worker "github.com/b0shka/backend/internal/worker/mocks"
 	"github.com/b0shka/backend/pkg/auth"
 	"github.com/b0shka/backend/pkg/hash"
+	"github.com/b0shka/backend/pkg/otp"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
@@ -36,6 +37,7 @@ func mockUserService(t *testing.T) (*service.UsersService, *mock_repository.Mock
 		repo,
 		&hash.SHA256Hasher{},
 		&auth.JWTManager{},
+		&otp.TOTPGenerator{},
 		config.AuthConfig{},
 		worker,
 	)

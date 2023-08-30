@@ -19,6 +19,7 @@ import (
 	"github.com/b0shka/backend/pkg/email"
 	"github.com/b0shka/backend/pkg/hash"
 	"github.com/b0shka/backend/pkg/logger"
+	"github.com/b0shka/backend/pkg/otp"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres" // for connect to postgres
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -59,9 +60,13 @@ func Run(configPath string) { //nolint: funlen
 		return
 	}
 
+	otpGenerator := otp.NewTOTPGenerator()
+
 	connPool, err := pgxpool.New(context.Background(), cfg.Postgres.URL)
 	if err != nil {
 		logger.Errorf("cannot connect to database: %s", err)
+
+		return
 	}
 
 	logger.Info("Success connect to database")
@@ -88,6 +93,7 @@ func Run(configPath string) { //nolint: funlen
 		Repos:           repos,
 		Hasher:          hasher,
 		TokenManager:    tokenManager,
+		OTPGenerator:    otpGenerator,
 		AuthConfig:      cfg.Auth,
 		TaskDistributor: taskDistributor,
 	})
@@ -117,7 +123,7 @@ func Run(configPath string) { //nolint: funlen
 		logger.Errorf("failed to stop server: %v", err)
 	}
 
-	logger.Info("Server stoped")
+	logger.Info("Server stopped")
 
 	connPool.Close()
 	logger.Info("Database disconnected")
