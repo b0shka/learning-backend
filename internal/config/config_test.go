@@ -82,9 +82,10 @@ func TestInitConfig(t *testing.T) {
 						AccessTokenTTL:  time.Minute * 15,
 						RefreshTokenTTL: time.Hour * 720,
 					},
-					SercetCodeLifetime: time.Minute * 5,
-					SecretKey:          "sercet_key",
-					CodeSalt:           "code_salt",
+					SercetCodeLifetime:     time.Minute * 5,
+					VerificationCodeLength: 6,
+					SecretKey:              "sercet_key",
+					CodeSalt:               "code_salt",
 				},
 				HTTP: HTTPConfig{
 					Port:               "80",

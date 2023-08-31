@@ -69,7 +69,7 @@ func (s *UsersService) SendCodeEmail(ctx context.Context, email string) error {
 		}
 	}
 
-	secretCode := s.otpGenerator.RandomCode(6)
+	secretCode := s.otpGenerator.RandomCode(s.authConfig.VerificationCodeLength)
 	taskPayload := &worker.PayloadSendVerifyEmail{
 		Email:      email,
 		SecretCode: secretCode,

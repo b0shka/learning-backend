@@ -9,7 +9,8 @@ auth:
     accessTokenTTL: 15m
     refreshTokenTTL: 720h
   sercetCodeLifetime: 5m
-
+  verificationCodeLength: 6
+  
 smtp:
   host: "smtp.gmail.com"
   port: 587
