@@ -24,7 +24,7 @@ func (h *Handler) initUsersRoutes(api *gin.RouterGroup) {
 		profile := users.Group("/").Use(userIdentity(h.tokenManager))
 		{
 			profile.GET("/", h.getUserByID)
-			profile.PUT("/", h.updateUser)
+			profile.PATCH("/", h.updateUser)
 			profile.DELETE("/", h.deleteUser)
 		}
 	}
@@ -41,8 +41,8 @@ type userSendCodeRequest struct {
 // @Accept			json
 // @Produce		json
 // @Param			input	body		userSendCodeRequest	true	"auth info"
-// @Success		201		{string}	string			"ok"
-// @Failure		400,404	{object}	response
+// @Success		200		{string}	string			"ok"
+// @Failure		400		{object}	response
 // @Failure		500		{object}	response
 // @Failure		default	{object}	response
 // @Router			/users/auth/send-code [post]
@@ -80,8 +80,8 @@ type userSignInResponse struct {
 // @Accept			json
 // @Produce		json
 // @Param			input	body		domain.UserSignIn	true	"sign in info"
-// @Success		201		{object}	userSignInResponse
-// @Failure		400,404	{object}	response
+// @Success		200		{object}	userSignInResponse
+// @Failure		400,401	{object}	response
 // @Failure		500		{object}	response
 // @Failure		default	{object}	response
 // @Router			/users/auth/sign-in [post]
@@ -138,10 +138,10 @@ type refreshTokenResponse struct {
 // @Accept			json
 // @Produce		json
 // @Param			input	body		refreshTokenRequest	true	"refresh info"
-// @Success		201		{object}	refreshTokenResponse
-// @Failure		400,404	{object}	response
-// @Failure		500		{object}	response
-// @Failure		default	{object}	response
+// @Success		200			{object}	refreshTokenResponse
+// @Failure		400,401,404	{object}	response
+// @Failure		500			{object}	response
+// @Failure		default		{object}	response
 // @Router			/users/auth/refresh [post]
 func (h *Handler) refreshToken(c *gin.Context) {
 	var inp refreshTokenRequest
@@ -187,7 +187,7 @@ func (h *Handler) refreshToken(c *gin.Context) {
 //		@ModuleID		getUserById
 //		@Accept			json
 //		@Produce		json
-//		@Success		201		{object}	domain.User
+//		@Success		200		{object}	domain.User
 //		@Failure		400,404	{object}	response
 //		@Failure		500		{object}	response
 //		@Failure		default	{object}	response
@@ -236,8 +236,8 @@ func (h *Handler) getUserByID(c *gin.Context) {
 //		@Accept			json
 //		@Produce		json
 //		@Param			input	body		domain.UserUpdate	true	"user update info"
-//		@Success		201		{string}	string			"ok"
-//		@Failure		400,404	{object}	response
+//		@Success		200		{string}	string			"ok"
+//		@Failure		400		{object}	response
 //		@Failure		500		{object}	response
 //		@Failure		default	{object}	response
 //		@Router			/users/ [put]
@@ -266,13 +266,13 @@ func (h *Handler) updateUser(c *gin.Context) {
 }
 
 //		@Summary		Delete User
-//	 @Security		UsersAuth
+//	 	@Security		UsersAuth
 //		@Tags			account
 //		@Description	delete user account
 //		@ModuleID		deleteUser
 //		@Accept			json
 //		@Produce		json
-//		@Success		201		{string}	string			"ok"
+//		@Success		200		{string}	string			"ok"
 //		@Failure		400,404	{object}	response
 //		@Failure		500		{object}	response
 //		@Failure		default	{object}	response
