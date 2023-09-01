@@ -21,11 +21,11 @@ func (h *Handler) initUsersRoutes(api *gin.RouterGroup) {
 			auth.POST("/refresh", h.refreshToken)
 		}
 
-		account := users.Group("/").Use(userIdentity(h.tokenManager))
+		profile := users.Group("/").Use(userIdentity(h.tokenManager))
 		{
-			account.GET("/", h.getUserByID)
-			account.POST("/update", h.updateUser)
-			account.GET("/delete", h.deleteUser)
+			profile.GET("/", h.getUserByID)
+			profile.PUT("/", h.updateUser)
+			profile.DELETE("/", h.deleteUser)
 		}
 	}
 }
@@ -45,7 +45,7 @@ type userSendCodeRequest struct {
 // @Failure		400,404	{object}	response
 // @Failure		500		{object}	response
 // @Failure		default	{object}	response
-// @Router			/user/auth/send-code [post]
+// @Router			/users/auth/send-code [post]
 func (h *Handler) sendCodeEmail(c *gin.Context) {
 	var inp userSendCodeRequest
 	if err := c.BindJSON(&inp); err != nil {
@@ -84,7 +84,7 @@ type userSignInResponse struct {
 // @Failure		400,404	{object}	response
 // @Failure		500		{object}	response
 // @Failure		default	{object}	response
-// @Router			/user/auth/sign-in [post]
+// @Router			/users/auth/sign-in [post]
 func (h *Handler) userSignIn(c *gin.Context) {
 	var inp domain.UserSignIn
 	if err := c.BindJSON(&inp); err != nil {
@@ -142,7 +142,7 @@ type refreshTokenResponse struct {
 // @Failure		400,404	{object}	response
 // @Failure		500		{object}	response
 // @Failure		default	{object}	response
-// @Router			/user/auth/refresh [post]
+// @Router			/users/auth/refresh [post]
 func (h *Handler) refreshToken(c *gin.Context) {
 	var inp refreshTokenRequest
 	if err := c.BindJSON(&inp); err != nil {
@@ -191,7 +191,7 @@ func (h *Handler) refreshToken(c *gin.Context) {
 //		@Failure		400,404	{object}	response
 //		@Failure		500		{object}	response
 //		@Failure		default	{object}	response
-//		@Router			/user/ [get]
+//		@Router			/users/ [get]
 func (h *Handler) getUserByID(c *gin.Context) {
 	userPayload, err := getUserPaylaod(c)
 	if err != nil {
@@ -240,7 +240,7 @@ func (h *Handler) getUserByID(c *gin.Context) {
 //		@Failure		400,404	{object}	response
 //		@Failure		500		{object}	response
 //		@Failure		default	{object}	response
-//		@Router			/user/update [post]
+//		@Router			/users/ [put]
 func (h *Handler) updateUser(c *gin.Context) {
 	userPayload, err := getUserPaylaod(c)
 	if err != nil {
@@ -276,7 +276,7 @@ func (h *Handler) updateUser(c *gin.Context) {
 //		@Failure		400,404	{object}	response
 //		@Failure		500		{object}	response
 //		@Failure		default	{object}	response
-//		@Router			/user/delete [get]
+//		@Router			/users/ [delete]
 func (h *Handler) deleteUser(c *gin.Context) {
 	userPayload, err := getUserPaylaod(c)
 	if err != nil {

@@ -72,7 +72,7 @@ definitions:
         type: string
       refresh_token:
         type: string
-      refresh_token_expites_at:
+      refresh_token_expires_at:
         type: string
       session_id:
         type: string
@@ -86,7 +86,39 @@ info:
   title: Service API
   version: "1.0"
 paths:
-  /user/:
+  /users/:
+    delete:
+      consumes:
+      - application/json
+      description: delete user account
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.response'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/http.response'
+      security:
+      - UsersAuth: []
+      summary: Delete User
+      tags:
+      - account
     get:
       consumes:
       - application/json
@@ -119,155 +151,7 @@ paths:
       summary: Get User
       tags:
       - account
-  /user/auth/refresh:
-    post:
-      consumes:
-      - application/json
-      description: user refresh token
-      parameters:
-      - description: refresh info
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/http.refreshTokenRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/http.refreshTokenResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/http.response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/http.response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/http.response'
-        default:
-          description: ""
-          schema:
-            $ref: '#/definitions/http.response'
-      summary: User Refresh Token
-      tags:
-      - auth
-  /user/auth/send-code:
-    post:
-      consumes:
-      - application/json
-      description: send secret code to email user
-      parameters:
-      - description: auth info
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/http.userSendCodeRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: ok
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/http.response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/http.response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/http.response'
-        default:
-          description: ""
-          schema:
-            $ref: '#/definitions/http.response'
-      summary: User Send Code Email
-      tags:
-      - auth
-  /user/auth/sign-in:
-    post:
-      consumes:
-      - application/json
-      description: user sign in
-      parameters:
-      - description: sign in info
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/domain.UserSignIn'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/http.userSignInResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/http.response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/http.response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/http.response'
-        default:
-          description: ""
-          schema:
-            $ref: '#/definitions/http.response'
-      summary: User SignIn
-      tags:
-      - auth
-  /user/delete:
-    get:
-      consumes:
-      - application/json
-      description: delete user account
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: ok
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/http.response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/http.response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/http.response'
-        default:
-          description: ""
-          schema:
-            $ref: '#/definitions/http.response'
-      security:
-      - UsersAuth: []
-      summary: Delete User
-      tags:
-      - account
-  /user/update:
-    post:
+    put:
       consumes:
       - application/json
       description: update user account
@@ -306,6 +190,120 @@ paths:
       summary: Update User
       tags:
       - account
+  /users/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: user refresh token
+      parameters:
+      - description: refresh info
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/http.refreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/http.refreshTokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.response'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/http.response'
+      summary: User Refresh Token
+      tags:
+      - auth
+  /users/auth/send-code:
+    post:
+      consumes:
+      - application/json
+      description: send secret code to email user
+      parameters:
+      - description: auth info
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/http.userSendCodeRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.response'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/http.response'
+      summary: User Send Code Email
+      tags:
+      - auth
+  /users/auth/sign-in:
+    post:
+      consumes:
+      - application/json
+      description: user sign in
+      parameters:
+      - description: sign in info
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UserSignIn'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/http.userSignInResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.response'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/http.response'
+      summary: User SignIn
+      tags:
+      - auth
 securityDefinitions:
   UsersAuth:
     in: header

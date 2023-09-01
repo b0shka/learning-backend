@@ -2,11 +2,11 @@ package repository
 
 import (
 	"context"
-	"strconv"
 	"testing"
 	"time"
 
 	"github.com/b0shka/backend/pkg/hash"
+	"github.com/b0shka/backend/pkg/otp"
 	"github.com/b0shka/backend/pkg/utils"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -19,9 +19,10 @@ func createRandomVerifyEmail(t *testing.T, user User) VerifyEmail {
 	hasher, err := hash.NewSHA256Hasher(utils.RandomString(32))
 	require.NoError(t, err)
 
-	code := utils.RandomInt(100000, 999999)
-	codeStr := strconv.Itoa(int(code))
-	codeHash, err := hasher.HashCode(codeStr)
+	otpGenerator := otp.NewTOTPGenerator()
+
+	code := otpGenerator.RandomCode(6)
+	codeHash, err := hasher.HashCode(code)
 	require.NoError(t, err)
 
 	arg := CreateVerifyEmailParams{
