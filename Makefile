@@ -3,6 +3,7 @@ REGISTRY = service
 API_IMAGE = backend
 POSTGRES_IMAGE = postgres
 REDIS_IMAGE=redis
+NGINX_IMAGE=nginx
 TAG = latest
 DB_URL=postgresql://root:qwerty@localhost:5432/service?sslmode=disable
 MIGRATION_URL=internal/repository/postgresql/migration
@@ -16,6 +17,7 @@ build:
 start:
 	docker compose down
 	docker rmi cr.selcloud.ru/${REGISTRY}/${API_IMAGE}:${TAG}
+	docker rmi cr.selcloud.ru/${REGISTRY}/${NGINX_IMAGE}:${TAG}
 	docker compose up --build --force-recreate
 # APP_ENV="local" .bin/main
 

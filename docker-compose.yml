@@ -38,3 +38,21 @@ services:
       "--"
     ]
     command: ["/app/main"]
+
+  nginx:
+    image: cr.selcloud.ru/service/nginx:latest
+    container_name: nginx
+    build:
+      context: .
+      dockerfile: deploy/nginx/Dockerfile
+    # volumes:
+    #   - ./certs/:/etc/nginx/certs/
+    ports:
+      - 80:80
+      - 443:443
+    # environment:
+    #   - API_HOST=api
+    #   - API_PORT=8080
+    #   - SERVER_NAME=${SERVER_NAME}
+    depends_on:
+      - api
