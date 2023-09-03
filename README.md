@@ -31,6 +31,7 @@ EMAIL_SERVICE_PASSWORD=<email password>
 SECRET_KEY=<random string>
 CODE_SALT=<random string>
 
+ENV=<local|prod>
 HTTP_HOST=localhost
 ```
 

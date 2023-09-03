@@ -32,7 +32,7 @@ import (
 //	@description	REST API for Service App
 
 //	@host		localhost:8080
-//	@BasePath	/api/v1
+//	@BasePath	/api/v1/
 
 //	@securityDefinitions.apikey	UsersAuth
 //	@in							header

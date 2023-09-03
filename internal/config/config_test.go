@@ -17,6 +17,8 @@ func TestInitConfig(t *testing.T) {
 		emailServicePassword string
 		secretKey            string
 		codedSalt            string
+		appEnv               string
+		httpHost             string
 	}
 
 	type args struct {
@@ -33,6 +35,8 @@ func TestInitConfig(t *testing.T) {
 		os.Setenv("EMAIL_SERVICE_PASSWORD", env.emailServicePassword)
 		os.Setenv("SECRET_KEY", env.secretKey)
 		os.Setenv("CODE_SALT", env.codedSalt)
+		os.Setenv("ENV", env.appEnv)
+		os.Setenv("HTTP_HOST", env.httpHost)
 	}
 
 	tests := []struct {
@@ -54,9 +58,12 @@ func TestInitConfig(t *testing.T) {
 					emailServicePassword: "qwerty123",
 					secretKey:            "sercet_key",
 					codedSalt:            "code_salt",
+					appEnv:               "local",
+					httpHost:             "localhost",
 				},
 			},
 			want: &Config{
+				Environment: "local",
 				Postgres: PostgresConfig{
 					URL:          "postgresql://root:qwerty@localhost:5432/service?sslmode=disable",
 					MigrationURL: "file://internal/repository/postgresql/migration",
@@ -88,6 +95,7 @@ func TestInitConfig(t *testing.T) {
 					CodeSalt:               "code_salt",
 				},
 				HTTP: HTTPConfig{
+					Host:               "localhost",
 					Port:               "80",
 					MaxHeaderMegabytes: 1,
 					ReadTimeout:        time.Second * 10,

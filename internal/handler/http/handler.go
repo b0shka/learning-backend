@@ -39,6 +39,14 @@ func (h *Handler) InitRoutes(cfg *config.Config) *gin.Engine {
 
 	docs.SwaggerInfo.Host = fmt.Sprintf("%s:%s", cfg.HTTP.Host, cfg.HTTP.Port)
 
+	if cfg.Environment != config.EnvLocal {
+		docs.SwaggerInfo.Host = cfg.HTTP.Host
+	}
+
+	// if cfg.Environment != config.EnvProd {
+	// 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	// }
+
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.GET("/ping", func(c *gin.Context) {

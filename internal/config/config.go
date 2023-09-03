@@ -10,14 +10,20 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	EnvLocal = "local"
+	EnvProd  = "prod"
+)
+
 type (
 	Config struct {
-		Postgres PostgresConfig
-		Redis    RedisConfig
-		HTTP     HTTPConfig  `mapstructure:"http"`
-		Auth     AuthConfig  `mapstructure:"auth"`
-		SMTP     SMTPConfig  `mapstructure:"smtp"`
-		Email    EmailConfig `mapstructure:"email"`
+		Environment string `envconfig:"ENV"`
+		Postgres    PostgresConfig
+		Redis       RedisConfig
+		HTTP        HTTPConfig  `mapstructure:"http"`
+		Auth        AuthConfig  `mapstructure:"auth"`
+		SMTP        SMTPConfig  `mapstructure:"smtp"`
+		Email       EmailConfig `mapstructure:"email"`
 	}
 
 	PostgresConfig struct {
