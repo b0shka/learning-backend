@@ -42,17 +42,22 @@ services:
   nginx:
     image: cr.selcloud.ru/service/nginx:latest
     container_name: nginx
+    restart: always
     build:
       context: .
       dockerfile: deploy/nginx/Dockerfile
-    # volumes:
-    #   - ./certs/:/etc/nginx/certs/
     ports:
       - 80:80
       - 443:443
-    # environment:
-    #   - API_HOST=api
-    #   - API_PORT=8080
-    #   - SERVER_NAME=${SERVER_NAME}
+    # volumes:
+    #   - "/etc/nginx/vhost.d"
+    #   - "/usr/share/nginx/html"
+    #   - "/var/run/docker.sock:/tmp/docker.sock:ro"
+    #   - "/etc/nginx/certs"
+    #   - ./certs/:/etc/nginx/certs/
+    environment:
+      - API_HOST=backend
+      - API_PORT=8080
+      - SERVER_NAME=${SERVER_NAME}
     depends_on:
       - api

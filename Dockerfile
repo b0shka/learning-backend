@@ -11,7 +11,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o ./.bin/main ./cmd/app/main.go
 
 # Run stage
 FROM alpine:latest
-
+RUN apk --no-cache add ca-certificates
 WORKDIR /app
 
 COPY --from=builder /app/.bin/main ./main
