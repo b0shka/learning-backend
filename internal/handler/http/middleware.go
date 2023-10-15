@@ -62,7 +62,7 @@ func parseAuthHeader(c *gin.Context, tokenManager auth.Manager) (*auth.Payload, 
 	return tokenManager.VerifyToken(headerParts[1])
 }
 
-func getUserPaylaod(c *gin.Context) (*auth.Payload, error) {
+func getUserPayload(c *gin.Context) (*auth.Payload, error) {
 	return getPayloadByContext(c, userCtx)
 }
 

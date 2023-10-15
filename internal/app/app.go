@@ -109,7 +109,10 @@ func Run(configPath string) { //nolint: funlen
 	}()
 
 	logger.Info("Server started")
+	gracefulShutdown(srv, connPool)
+}
 
+func gracefulShutdown(srv *server.Server, connPool *pgxpool.Pool) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit

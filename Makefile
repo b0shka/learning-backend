@@ -14,12 +14,14 @@ MIGRATION_URL=internal/repository/postgresql/migration
 build:
 	go mod download && CGO_ENABLED=0 GOOS=linux go build -o ./.bin/${PROGRAM_NAME} ./cmd/app/main.go
 
-start:
-	docker compose down
-	docker rmi cr.selcloud.ru/${REGISTRY}/${API_IMAGE}:${TAG}
-	docker rmi cr.selcloud.ru/${REGISTRY}/${NGINX_IMAGE}:${TAG}
-	docker compose up --build --force-recreate
-# APP_ENV="local" .bin/main
+# start:
+# 	docker compose down
+# 	docker rmi cr.selcloud.ru/${REGISTRY}/${API_IMAGE}:${TAG}
+# 	docker rmi cr.selcloud.ru/${REGISTRY}/${NGINX_IMAGE}:${TAG}
+# 	docker compose up --build --force-recreate
+
+start: build
+	APP_ENV="local" .bin/main
 
 test:
 #	make docker-run-postgres

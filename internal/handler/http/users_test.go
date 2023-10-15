@@ -3,7 +3,6 @@ package http
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,13 +23,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var ErrInternalServerError = errors.New("test: internal server error")
-
-func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, user domain.User) {
+func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, user domain.GetUserResponse) {
 	data, err := io.ReadAll(body)
 	require.NoError(t, err)
 
-	var gotUser domain.User
+	var gotUser domain.GetUserResponse
 	err = json.Unmarshal(data, &gotUser)
 
 	require.NoError(t, err)
@@ -39,29 +36,6 @@ func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, user domain.User) {
 	require.Equal(t, user.Username, gotUser.Username)
 	require.Equal(t, user.Photo, gotUser.Photo)
 	require.NotEmpty(t, gotUser.CreatedAt)
-}
-
-func requireBodyMatchTokens(t *testing.T, body *bytes.Buffer, token service.Tokens) {
-	data, err := io.ReadAll(body)
-	require.NoError(t, err)
-
-	var gotTokens service.Tokens
-	err = json.Unmarshal(data, &gotTokens)
-
-	require.NoError(t, err)
-	require.Equal(t, token.AccessToken, gotTokens.AccessToken)
-	require.Equal(t, token.RefreshToken, gotTokens.RefreshToken)
-}
-
-func requireBodyMatchRefershToken(t *testing.T, body *bytes.Buffer, token service.RefreshToken) {
-	data, err := io.ReadAll(body)
-	require.NoError(t, err)
-
-	var gotTokens service.RefreshToken
-	err = json.Unmarshal(data, &gotTokens)
-
-	require.NoError(t, err)
-	require.Equal(t, token.AccessToken, gotTokens.AccessToken)
 }
 
 func randomUser(t *testing.T) repository.User {
@@ -80,517 +54,6 @@ func randomUser(t *testing.T) repository.User {
 	}
 
 	return user
-}
-
-func TestHandler_sendCodeEmail(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockUsers, email string)
-
-	tests := []struct {
-		name         string
-		body         gin.H
-		email        string
-		mockBehavior mockBehavior
-		statusCode   int
-		responseBody string
-	}{
-		{
-			name: "ok",
-			body: gin.H{
-				"email": "email@ya.ru",
-			},
-			email: "email@ya.ru",
-			mockBehavior: func(s *mock_service.MockUsers, email string) {
-				s.EXPECT().SendCodeEmail(gomock.Any(), email).Return(nil)
-			},
-			statusCode:   200,
-			responseBody: "",
-		},
-		{
-			name: "error send code",
-			body: gin.H{
-				"email": "email@ya.ru",
-			},
-			mockBehavior: func(s *mock_service.MockUsers, email string) {
-				s.EXPECT().SendCodeEmail(gomock.Any(), gomock.Any()).
-					Return(ErrInternalServerError)
-			},
-			statusCode:   500,
-			responseBody: fmt.Sprintf(`{"message":"%s"}`, ErrInternalServerError),
-		},
-		{
-			name: "empty fields",
-			body: gin.H{
-				"email": "",
-			},
-			mockBehavior: func(s *mock_service.MockUsers, email string) {},
-			statusCode:   400,
-			responseBody: `{"message":"invalid input body"}`,
-		},
-		{
-			name: "invalid email",
-			body: gin.H{
-				"email": "email@",
-			},
-			mockBehavior: func(s *mock_service.MockUsers, email string) {},
-			statusCode:   400,
-			responseBody: `{"message":"invalid input body"}`,
-		},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			mockCtl := gomock.NewController(t)
-			defer mockCtl.Finish()
-
-			usersService := mock_service.NewMockUsers(mockCtl)
-			testCase.mockBehavior(usersService, testCase.email)
-
-			services := &service.Services{Users: usersService}
-			handler := Handler{services: services}
-
-			router := gin.Default()
-			router.POST("/send-code", handler.sendCodeEmail)
-
-			recorder := httptest.NewRecorder()
-
-			data, err := json.Marshal(testCase.body)
-			require.NoError(t, err)
-
-			req := httptest.NewRequest(
-				http.MethodPost,
-				"/send-code",
-				bytes.NewReader(data),
-			)
-
-			router.ServeHTTP(recorder, req)
-
-			require.Equal(t, testCase.statusCode, recorder.Code)
-			require.Equal(t, testCase.responseBody, recorder.Body.String())
-		})
-	}
-}
-
-func TestHandler_userSignIn(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockUsers, input domain.UserSignIn)
-
-	tokens := service.Tokens{
-		SessionID:             uuid.New(),
-		RefreshToken:          utils.RandomString(10),
-		RefreshTokenExpiresAt: time.Now().Add(time.Hour * 720),
-		AccessToken:           utils.RandomString(10),
-		AccessTokenExpiresAt:  time.Now().Add(time.Minute * 15),
-	}
-
-	user := repository.User{
-		ID:       uuid.New(),
-		Email:    utils.RandomEmail(),
-		Username: utils.RandomString(10),
-		Photo: pgtype.Text{
-			String: fmt.Sprintf("https://%s.png", utils.RandomString(7)),
-			Valid:  true,
-		},
-		CreatedAt: time.Now(),
-	}
-
-	tests := []struct {
-		name          string
-		body          gin.H
-		userInput     domain.UserSignIn
-		mockBehavior  mockBehavior
-		checkResponse func(recoder *httptest.ResponseRecorder)
-	}{
-		{
-			name: "ok",
-			body: gin.H{
-				"email":       "email@ya.ru",
-				"secret_code": 123456,
-			},
-			userInput: domain.UserSignIn{
-				Email:      "email@ya.ru",
-				SecretCode: 123456,
-			},
-			mockBehavior: func(s *mock_service.MockUsers, input domain.UserSignIn) {
-				s.EXPECT().
-					SignIn(gomock.Any(), input).
-					Return(user, tokens, nil)
-			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, recorder.Code)
-				requireBodyMatchTokens(t, recorder.Body, tokens)
-			},
-		},
-		{
-			name: "error sign in",
-			body: gin.H{
-				"email":       "email@ya.ru",
-				"secret_code": 123456,
-			},
-			mockBehavior: func(s *mock_service.MockUsers, input domain.UserSignIn) {
-				s.EXPECT().
-					SignIn(gomock.Any(), gomock.Any()).
-					Return(repository.User{}, service.Tokens{}, ErrInternalServerError)
-			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusInternalServerError, recorder.Code)
-				require.Equal(
-					t,
-					fmt.Sprintf(`{"message":"%s"}`, ErrInternalServerError),
-					recorder.Body.String(),
-				)
-			},
-		},
-		{
-			name: "error invalid secret code",
-			body: gin.H{
-				"email":       "email@ya.ru",
-				"secret_code": 123456,
-			},
-			mockBehavior: func(s *mock_service.MockUsers, input domain.UserSignIn) {
-				s.EXPECT().
-					SignIn(gomock.Any(), gomock.Any()).
-					Return(repository.User{}, service.Tokens{}, domain.ErrSecretCodeInvalid)
-			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusUnauthorized, recorder.Code)
-				require.Equal(
-					t,
-					fmt.Sprintf(`{"message":"%s"}`, domain.ErrSecretCodeInvalid),
-					recorder.Body.String(),
-				)
-			},
-		},
-		{
-			name: "error expired secret code",
-			body: gin.H{
-				"email":       "email@ya.ru",
-				"secret_code": 123456,
-			},
-			mockBehavior: func(s *mock_service.MockUsers, input domain.UserSignIn) {
-				s.EXPECT().
-					SignIn(gomock.Any(), gomock.Any()).
-					Return(repository.User{}, service.Tokens{}, domain.ErrSecretCodeExpired)
-			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusUnauthorized, recorder.Code)
-				require.Equal(
-					t,
-					fmt.Sprintf(`{"message":"%s"}`, domain.ErrSecretCodeExpired),
-					recorder.Body.String(),
-				)
-			},
-		},
-		{
-			name: "empty fields",
-			body: gin.H{
-				"email":       "",
-				"secret_code": nil,
-			},
-			mockBehavior: func(s *mock_service.MockUsers, input domain.UserSignIn) {},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, recorder.Code)
-				require.Equal(
-					t,
-					`{"message":"invalid input body"}`,
-					recorder.Body.String(),
-				)
-			},
-		},
-		{
-			name: "empty fields",
-			body: gin.H{
-				"email":       "email@ya.ru",
-				"secret_code": nil,
-			},
-			mockBehavior: func(s *mock_service.MockUsers, input domain.UserSignIn) {},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, recorder.Code)
-				require.Equal(
-					t,
-					`{"message":"invalid input body"}`,
-					recorder.Body.String(),
-				)
-			},
-		},
-		{
-			name: "empty fields",
-			body: gin.H{
-				"email":       "",
-				"secret_code": 123456,
-			},
-			mockBehavior: func(s *mock_service.MockUsers, input domain.UserSignIn) {},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, recorder.Code)
-				require.Equal(
-					t,
-					`{"message":"invalid input body"}`,
-					recorder.Body.String(),
-				)
-			},
-		},
-		{
-			name: "invalid input secret code",
-			body: gin.H{
-				"email":       "email@ya.ru",
-				"secret_code": 12345,
-			},
-			mockBehavior: func(s *mock_service.MockUsers, input domain.UserSignIn) {},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, recorder.Code)
-				require.Equal(
-					t,
-					`{"message":"invalid input body"}`,
-					recorder.Body.String(),
-				)
-			},
-		},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			mockCtl := gomock.NewController(t)
-			defer mockCtl.Finish()
-
-			usersService := mock_service.NewMockUsers(mockCtl)
-			testCase.mockBehavior(usersService, testCase.userInput)
-
-			services := &service.Services{Users: usersService}
-			handler := Handler{services: services}
-
-			router := gin.Default()
-			router.POST("/sign-in", handler.userSignIn)
-
-			data, err := json.Marshal(testCase.body)
-			require.NoError(t, err)
-
-			recorder := httptest.NewRecorder()
-			req := httptest.NewRequest(
-				http.MethodPost,
-				"/sign-in",
-				bytes.NewReader(data),
-			)
-
-			router.ServeHTTP(recorder, req)
-			testCase.checkResponse(recorder)
-		})
-	}
-}
-
-func TestHandler_refreshToken(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockUsers, refreshToken string)
-
-	token := service.RefreshToken{
-		AccessToken:          utils.RandomString(10),
-		AccessTokenExpiresAt: time.Now().Add(time.Minute * 15),
-	}
-
-	tests := []struct {
-		name          string
-		body          gin.H
-		refreshToken  string
-		mockBehavior  mockBehavior
-		checkResponse func(recoder *httptest.ResponseRecorder)
-	}{
-		{
-			name: "ok",
-			body: gin.H{
-				"refresh_token": "refresh_token",
-			},
-			refreshToken: "refresh_token",
-			mockBehavior: func(s *mock_service.MockUsers, refreshToken string) {
-				s.EXPECT().
-					RefreshToken(gomock.Any(), refreshToken).
-					Return(token, nil)
-			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, recorder.Code)
-				requireBodyMatchRefershToken(t, recorder.Body, token)
-			},
-		},
-		{
-			name: "error refresh token",
-			body: gin.H{
-				"refresh_token": "refresh_token",
-			},
-			refreshToken: "refresh_token",
-			mockBehavior: func(s *mock_service.MockUsers, refreshToken string) {
-				s.EXPECT().
-					RefreshToken(gomock.Any(), gomock.Any()).
-					Return(service.RefreshToken{}, ErrInternalServerError)
-			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusInternalServerError, recorder.Code)
-				require.Equal(
-					t,
-					fmt.Sprintf(`{"message":"%s"}`, ErrInternalServerError),
-					recorder.Body.String(),
-				)
-			},
-		},
-		{
-			name: "error session not found",
-			body: gin.H{
-				"refresh_token": "refresh_token",
-			},
-			refreshToken: "refresh_token",
-			mockBehavior: func(s *mock_service.MockUsers, refreshToken string) {
-				s.EXPECT().
-					RefreshToken(gomock.Any(), gomock.Any()).
-					Return(service.RefreshToken{}, domain.ErrSessionNotFound)
-			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusNotFound, recorder.Code)
-				require.Equal(
-					t,
-					fmt.Sprintf(`{"message":"%s"}`, domain.ErrSessionNotFound),
-					recorder.Body.String(),
-				)
-			},
-		},
-		{
-			name: "error session blocked",
-			body: gin.H{
-				"refresh_token": "refresh_token",
-			},
-			refreshToken: "refresh_token",
-			mockBehavior: func(s *mock_service.MockUsers, refreshToken string) {
-				s.EXPECT().
-					RefreshToken(gomock.Any(), gomock.Any()).
-					Return(service.RefreshToken{}, domain.ErrSessionBlocked)
-			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusUnauthorized, recorder.Code)
-				require.Equal(
-					t,
-					fmt.Sprintf(`{"message":"%s"}`, domain.ErrSessionBlocked),
-					recorder.Body.String(),
-				)
-			},
-		},
-		{
-			name: "error incorrect session user",
-			body: gin.H{
-				"refresh_token": "refresh_token",
-			},
-			refreshToken: "refresh_token",
-			mockBehavior: func(s *mock_service.MockUsers, refreshToken string) {
-				s.EXPECT().
-					RefreshToken(gomock.Any(), gomock.Any()).
-					Return(service.RefreshToken{}, domain.ErrIncorrectSessionUser)
-			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusUnauthorized, recorder.Code)
-				require.Equal(
-					t,
-					fmt.Sprintf(`{"message":"%s"}`, domain.ErrIncorrectSessionUser),
-					recorder.Body.String(),
-				)
-			},
-		},
-		{
-			name: "error mismatched session",
-			body: gin.H{
-				"refresh_token": "refresh_token",
-			},
-			refreshToken: "refresh_token",
-			mockBehavior: func(s *mock_service.MockUsers, refreshToken string) {
-				s.EXPECT().
-					RefreshToken(gomock.Any(), gomock.Any()).
-					Return(service.RefreshToken{}, domain.ErrMismatchedSession)
-			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusUnauthorized, recorder.Code)
-				require.Equal(
-					t,
-					fmt.Sprintf(`{"message":"%s"}`, domain.ErrMismatchedSession),
-					recorder.Body.String(),
-				)
-			},
-		},
-		{
-			name: "error expires token",
-			body: gin.H{
-				"refresh_token": "refresh_token",
-			},
-			refreshToken: "refresh_token",
-			mockBehavior: func(s *mock_service.MockUsers, refreshToken string) {
-				s.EXPECT().
-					RefreshToken(gomock.Any(), gomock.Any()).
-					Return(service.RefreshToken{}, domain.ErrExpiredToken)
-			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusUnauthorized, recorder.Code)
-				require.Equal(
-					t,
-					fmt.Sprintf(`{"message":"%s"}`, domain.ErrExpiredToken),
-					recorder.Body.String(),
-				)
-			},
-		},
-		{
-			name: "error invalid token",
-			body: gin.H{
-				"refresh_token": "refresh_token",
-			},
-			refreshToken: "refresh_token",
-			mockBehavior: func(s *mock_service.MockUsers, refreshToken string) {
-				s.EXPECT().
-					RefreshToken(gomock.Any(), gomock.Any()).
-					Return(service.RefreshToken{}, domain.ErrInvalidToken)
-			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusUnauthorized, recorder.Code)
-				require.Equal(
-					t,
-					fmt.Sprintf(`{"message":"%s"}`, domain.ErrInvalidToken),
-					recorder.Body.String(),
-				)
-			},
-		},
-		{
-			name: "empty fields",
-			body: gin.H{
-				"refresh_token": "",
-			},
-			mockBehavior: func(s *mock_service.MockUsers, refreshToken string) {},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, recorder.Code)
-				require.Equal(
-					t,
-					`{"message":"invalid input body"}`,
-					recorder.Body.String(),
-				)
-			},
-		},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			mockCtl := gomock.NewController(t)
-			defer mockCtl.Finish()
-
-			usersService := mock_service.NewMockUsers(mockCtl)
-			testCase.mockBehavior(usersService, testCase.refreshToken)
-
-			services := &service.Services{Users: usersService}
-			handler := Handler{services: services}
-
-			router := gin.Default()
-			router.POST("/refresh", handler.refreshToken)
-
-			data, err := json.Marshal(testCase.body)
-			require.NoError(t, err)
-
-			recorder := httptest.NewRecorder()
-			req := httptest.NewRequest(
-				http.MethodPost,
-				"/refresh",
-				bytes.NewReader(data),
-			)
-
-			router.ServeHTTP(recorder, req)
-			testCase.checkResponse(recorder)
-		})
-	}
 }
 
 func TestHandler_getUserById(t *testing.T) {
@@ -618,7 +81,7 @@ func TestHandler_getUserById(t *testing.T) {
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
-				requireBodyMatchUser(t, recorder.Body, domain.User{
+				requireBodyMatchUser(t, recorder.Body, domain.GetUserResponse{
 					ID:        user.ID,
 					Email:     user.Email,
 					Username:  user.Username,
@@ -723,7 +186,7 @@ func TestHandler_getUserById(t *testing.T) {
 }
 
 func TestHandler_updateUser(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UserUpdate)
+	type mockBehavior func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UpdateUserRequest)
 
 	userID, err := uuid.NewRandom()
 	require.NoError(t, err)
@@ -732,7 +195,7 @@ func TestHandler_updateUser(t *testing.T) {
 		name         string
 		body         gin.H
 		userID       uuid.UUID
-		user         domain.UserUpdate
+		user         domain.UpdateUserRequest
 		setupAuth    func(t *testing.T, request *http.Request, tokenManager auth.Manager)
 		mockBehavior mockBehavior
 		statusCode   int
@@ -745,14 +208,14 @@ func TestHandler_updateUser(t *testing.T) {
 				"photo":    "",
 			},
 			userID: userID,
-			user: domain.UserUpdate{
+			user: domain.UpdateUserRequest{
 				Username: "vanya",
 				Photo:    "",
 			},
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
 				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userID, time.Minute)
 			},
-			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UserUpdate) {
+			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UpdateUserRequest) {
 				s.EXPECT().Update(gomock.Any(), userID, user).Return(nil)
 			},
 			statusCode:   200,
@@ -765,14 +228,14 @@ func TestHandler_updateUser(t *testing.T) {
 				"photo":    "https://photo.png",
 			},
 			userID: userID,
-			user: domain.UserUpdate{
+			user: domain.UpdateUserRequest{
 				Username: "vanya",
 				Photo:    "https://photo.png",
 			},
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
 				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userID, time.Minute)
 			},
-			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UserUpdate) {
+			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UpdateUserRequest) {
 				s.EXPECT().Update(gomock.Any(), userID, user).Return(nil)
 			},
 			statusCode:   200,
@@ -785,12 +248,12 @@ func TestHandler_updateUser(t *testing.T) {
 				"photo":    "https://photo.png",
 			},
 			userID: userID,
-			user: domain.UserUpdate{
+			user: domain.UpdateUserRequest{
 				Username: "vanya",
 				Photo:    "",
 			},
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {},
-			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UserUpdate) {
+			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UpdateUserRequest) {
 				s.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			statusCode:   401,
@@ -803,14 +266,14 @@ func TestHandler_updateUser(t *testing.T) {
 				"photo":    "",
 			},
 			userID: userID,
-			user: domain.UserUpdate{
+			user: domain.UpdateUserRequest{
 				Username: "vanya",
 				Photo:    "",
 			},
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
 				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userID, time.Minute)
 			},
-			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UserUpdate) {
+			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UpdateUserRequest) {
 				s.EXPECT().Update(gomock.Any(), userID, user).Return(ErrInternalServerError)
 			},
 			statusCode:   500,
@@ -825,7 +288,7 @@ func TestHandler_updateUser(t *testing.T) {
 			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
 				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userID, time.Minute)
 			},
-			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UserUpdate) {
+			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UpdateUserRequest) {
 				s.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			statusCode:   400,

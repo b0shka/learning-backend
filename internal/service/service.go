@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"time"
 
 	"github.com/b0shka/backend/internal/config"
 	"github.com/b0shka/backend/internal/domain"
@@ -16,28 +15,29 @@ import (
 )
 
 type Tokens struct {
-	SessionID             uuid.UUID `json:"session_id"`
-	RefreshToken          string    `json:"refresh_token"`
-	RefreshTokenExpiresAt time.Time `json:"refresh_token_expires_at"`
-	AccessToken           string    `json:"access_token"`
-	AccessTokenExpiresAt  time.Time `json:"access_token_expires_at"`
+	SessionID    uuid.UUID `json:"session_id"`
+	RefreshToken string    `json:"refresh_token"`
+	AccessToken  string    `json:"access_token"`
 }
 
 type RefreshToken struct {
-	AccessToken          string    `json:"access_token"`
-	AccessTokenExpiresAt time.Time `json:"access_token_expires_at"`
+	AccessToken string `json:"access_token"`
+}
+
+type Auth interface {
+	SendCodeEmail(ctx context.Context, email string) error
+	SignIn(ctx *gin.Context, inp domain.SignInRequest) (Tokens, error)
+	RefreshToken(ctx context.Context, refreshToken string) (RefreshToken, error)
 }
 
 type Users interface {
-	SendCodeEmail(ctx context.Context, email string) error
-	SignIn(ctx *gin.Context, inp domain.UserSignIn) (repository.User, Tokens, error)
-	RefreshToken(ctx context.Context, refreshToken string) (RefreshToken, error)
 	GetByID(ctx context.Context, id uuid.UUID) (repository.User, error)
-	Update(ctx context.Context, id uuid.UUID, user domain.UserUpdate) error
+	Update(ctx context.Context, id uuid.UUID, user domain.UpdateUserRequest) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 type Services struct {
+	Auth
 	Users
 }
 
@@ -52,13 +52,16 @@ type Deps struct {
 
 func NewServices(deps Deps) *Services {
 	return &Services{
-		Users: NewUsersService(
+		Auth: NewAuthService(
 			deps.Repos,
 			deps.Hasher,
 			deps.TokenManager,
 			deps.OTPGenerator,
 			deps.AuthConfig,
 			deps.TaskDistributor,
+		),
+		Users: NewUsersService(
+			deps.Repos,
 		),
 	}
 }

@@ -16,6 +16,73 @@ import (
 	uuid "github.com/google/uuid"
 )
 
+// MockAuth is a mock of Auth interface.
+type MockAuth struct {
+	ctrl     *gomock.Controller
+	recorder *MockAuthMockRecorder
+}
+
+// MockAuthMockRecorder is the mock recorder for MockAuth.
+type MockAuthMockRecorder struct {
+	mock *MockAuth
+}
+
+// NewMockAuth creates a new mock instance.
+func NewMockAuth(ctrl *gomock.Controller) *MockAuth {
+	mock := &MockAuth{ctrl: ctrl}
+	mock.recorder = &MockAuthMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockAuth) EXPECT() *MockAuthMockRecorder {
+	return m.recorder
+}
+
+// RefreshToken mocks base method.
+func (m *MockAuth) RefreshToken(ctx context.Context, refreshToken string) (service.RefreshToken, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshToken", ctx, refreshToken)
+	ret0, _ := ret[0].(service.RefreshToken)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RefreshToken indicates an expected call of RefreshToken.
+func (mr *MockAuthMockRecorder) RefreshToken(ctx, refreshToken interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshToken", reflect.TypeOf((*MockAuth)(nil).RefreshToken), ctx, refreshToken)
+}
+
+// SendCodeEmail mocks base method.
+func (m *MockAuth) SendCodeEmail(ctx context.Context, email string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendCodeEmail", ctx, email)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SendCodeEmail indicates an expected call of SendCodeEmail.
+func (mr *MockAuthMockRecorder) SendCodeEmail(ctx, email interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendCodeEmail", reflect.TypeOf((*MockAuth)(nil).SendCodeEmail), ctx, email)
+}
+
+// SignIn mocks base method.
+func (m *MockAuth) SignIn(ctx *gin.Context, inp domain.SignInRequest) (service.Tokens, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SignIn", ctx, inp)
+	ret0, _ := ret[0].(service.Tokens)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SignIn indicates an expected call of SignIn.
+func (mr *MockAuthMockRecorder) SignIn(ctx, inp interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SignIn", reflect.TypeOf((*MockAuth)(nil).SignIn), ctx, inp)
+}
+
 // MockUsers is a mock of Users interface.
 type MockUsers struct {
 	ctrl     *gomock.Controller
@@ -68,53 +135,8 @@ func (mr *MockUsersMockRecorder) GetByID(ctx, id interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockUsers)(nil).GetByID), ctx, id)
 }
 
-// RefreshToken mocks base method.
-func (m *MockUsers) RefreshToken(ctx context.Context, refreshToken string) (service.RefreshToken, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RefreshToken", ctx, refreshToken)
-	ret0, _ := ret[0].(service.RefreshToken)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RefreshToken indicates an expected call of RefreshToken.
-func (mr *MockUsersMockRecorder) RefreshToken(ctx, refreshToken interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshToken", reflect.TypeOf((*MockUsers)(nil).RefreshToken), ctx, refreshToken)
-}
-
-// SendCodeEmail mocks base method.
-func (m *MockUsers) SendCodeEmail(ctx context.Context, email string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendCodeEmail", ctx, email)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SendCodeEmail indicates an expected call of SendCodeEmail.
-func (mr *MockUsersMockRecorder) SendCodeEmail(ctx, email interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendCodeEmail", reflect.TypeOf((*MockUsers)(nil).SendCodeEmail), ctx, email)
-}
-
-// SignIn mocks base method.
-func (m *MockUsers) SignIn(ctx *gin.Context, inp domain.UserSignIn) (repository.User, service.Tokens, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SignIn", ctx, inp)
-	ret0, _ := ret[0].(repository.User)
-	ret1, _ := ret[1].(service.Tokens)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// SignIn indicates an expected call of SignIn.
-func (mr *MockUsersMockRecorder) SignIn(ctx, inp interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SignIn", reflect.TypeOf((*MockUsers)(nil).SignIn), ctx, inp)
-}
-
 // Update mocks base method.
-func (m *MockUsers) Update(ctx context.Context, id uuid.UUID, user domain.UserUpdate) error {
+func (m *MockUsers) Update(ctx context.Context, id uuid.UUID, user domain.UpdateUserRequest) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", ctx, id, user)
 	ret0, _ := ret[0].(error)

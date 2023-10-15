@@ -55,6 +55,7 @@ func (h *Handler) InitRoutes(cfg *config.Config) *gin.Engine {
 
 	api := router.Group("/api/v1")
 	{
+		h.initAuthRoutes(api)
 		h.initUsersRoutes(api)
 	}
 

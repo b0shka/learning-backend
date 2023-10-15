@@ -148,7 +148,7 @@ func TestGetUserPayload(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			payload, err := getUserPaylaod(testCase.ctx)
+			payload, err := getUserPayload(testCase.ctx)
 
 			if testCase.shouldErr {
 				assert.Error(t, err)
