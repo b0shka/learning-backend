@@ -15,7 +15,7 @@ func RandomInt(min, max int64) (int64, error) {
 		return min, nil
 	}
 
-	n, err := rand.Int(rand.Reader, big.NewInt(int64(max-min+1)))
+	n, err := rand.Int(rand.Reader, big.NewInt(max-min+1))
 	if err != nil {
 		return 0, err
 	}
