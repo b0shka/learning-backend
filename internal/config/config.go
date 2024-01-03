@@ -17,8 +17,8 @@ const (
 
 type (
 	Config struct {
-		Environment string `envconfig:"ENV"`
-		Postgres    PostgresConfig
+		Environment string         `envconfig:"ENV"`
+		Postgres    PostgresConfig `mapstructure:"postgresql"`
 		Redis       RedisConfig
 		HTTP        HTTPConfig  `mapstructure:"http"`
 		Auth        AuthConfig  `mapstructure:"auth"`
@@ -27,8 +27,10 @@ type (
 	}
 
 	PostgresConfig struct {
-		URL          string `envconfig:"POSTGRESQL_URL"`
-		MigrationURL string `envconfig:"MIGRATION_URL"`
+		URL          string        `envconfig:"POSTGRESQL_URL"`
+		MigrationURL string        `envconfig:"MIGRATION_URL"`
+		MaxAttempts  int           `mapstructure:"max_attempts"`
+		MaxDelay     time.Duration `mapstructure:"max_delay"`
 	}
 
 	RedisConfig struct {
@@ -67,7 +69,7 @@ type (
 	}
 
 	HTTPConfig struct {
-		Host               string        `mapstructure:"HTTP_HOST"`
+		Host               string        `envconfig:"HTTP_HOST"`
 		Port               string        `mapstructure:"port"`
 		MaxHeaderMegabytes int           `mapstructure:"maxHeaderBytes"`
 		ReadTimeout        time.Duration `mapstructure:"readTimeout"`

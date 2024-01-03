@@ -15,6 +15,10 @@ smtp:
   host: "smtp.gmail.com"
   port: 587
 
+postgresql:
+  max_attempts: 5
+  max_delay: 3s
+
 email:
   templates:
     verify_email: "./templates/verify_email.html"

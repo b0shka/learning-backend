@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
+	repository "github.com/b0shka/backend/internal/repository/postgresql"
 	"github.com/b0shka/backend/pkg/logger"
-	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 )
 
@@ -53,19 +52,14 @@ func (processor *RedisTaskProcessor) ProcessTaskSendVerifyEmail(ctx context.Cont
 		return err
 	}
 
-	verifyEmailID, err := uuid.NewRandom()
-	if err != nil {
-		return err
-	}
-
-	verifyEmail := repository.CreateVerifyEmailParams{
-		ID:         verifyEmailID,
+	verifyEmailParams := repository.CreateVerifyEmailParams{
+		ID:         processor.idGenerator.GenerateUUID(),
 		Email:      payload.Email,
 		SecretCode: secretCodeHash,
 		ExpiresAt:  time.Now().Add(processor.authConfig.SercetCodeLifetime),
 	}
 
-	_, err = processor.store.CreateVerifyEmail(ctx, verifyEmail)
+	_, err = processor.repos.VerifyEmails.Create(ctx, verifyEmailParams)
 	if err != nil {
 		return err
 	}

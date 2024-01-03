@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/b0shka/backend/internal/domain"
+	"github.com/b0shka/backend/pkg/identity"
 	"github.com/google/uuid"
 )
 
@@ -15,13 +16,10 @@ type Payload struct {
 }
 
 func NewPayload(userID uuid.UUID, duration time.Duration) (*Payload, error) {
-	payloadID, err := uuid.NewRandom()
-	if err != nil {
-		return nil, err
-	}
+	idGenerator := identity.NewIDGenerator()
 
 	payload := &Payload{
-		ID:        payloadID,
+		ID:        idGenerator.GenerateUUID(),
 		UserID:    userID,
 		IssuedAt:  time.Now(),
 		ExpiresAt: time.Now().Add(duration),

@@ -11,13 +11,15 @@ import (
 
 	"github.com/b0shka/backend/internal/config"
 	handler "github.com/b0shka/backend/internal/handler/http"
-	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
+	repository "github.com/b0shka/backend/internal/repository/postgresql"
 	"github.com/b0shka/backend/internal/server"
 	"github.com/b0shka/backend/internal/service"
 	"github.com/b0shka/backend/internal/worker"
 	"github.com/b0shka/backend/pkg/auth"
+	"github.com/b0shka/backend/pkg/database/postgresql"
 	"github.com/b0shka/backend/pkg/email"
 	"github.com/b0shka/backend/pkg/hash"
+	"github.com/b0shka/backend/pkg/identity"
 	"github.com/b0shka/backend/pkg/logger"
 	"github.com/b0shka/backend/pkg/otp"
 	"github.com/golang-migrate/migrate/v4"
@@ -25,6 +27,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/hibiken/asynq"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/streadway/amqp"
 )
 
 //	@title			Service API
@@ -61,10 +64,20 @@ func Run(configPath string) { //nolint: funlen
 	}
 
 	otpGenerator := otp.NewTOTPGenerator()
+	idGenerator := identity.NewIDGenerator()
 
-	connPool, err := pgxpool.New(context.Background(), cfg.Postgres.URL)
+	rabbitMQClient, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {
-		logger.Errorf("cannot connect to database: %s", err)
+		logger.Errorf("Cannot connect to RabbitMQ: %s", err)
+
+		return
+	}
+
+	logger.Info("Success connect to RabbitMQ")
+
+	postgreSQLClient, err := postgresql.NewClient(context.Background(), cfg.Postgres)
+	if err != nil {
+		logger.Errorf("Cannot connect to database: %s", err)
 
 		return
 	}
@@ -78,22 +91,23 @@ func Run(configPath string) { //nolint: funlen
 		return
 	}
 
-	logger.Info("db migrated successfully")
+	logger.Info("DB migrated successfully")
 
-	repos := repository.NewStore(connPool)
+	repos := repository.NewRepositories(postgreSQLClient)
 
 	redisOpt := asynq.RedisClientOpt{
 		Addr: cfg.Redis.Address,
 	}
 	taskDistributor := worker.NewRedisTaskDistributor(redisOpt)
 
-	go runTaskProcessor(redisOpt, repos, hasher, cfg)
+	go runTaskProcessor(redisOpt, repos, hasher, idGenerator, cfg)
 
 	services := service.NewServices(service.Deps{
 		Repos:           repos,
 		Hasher:          hasher,
 		TokenManager:    tokenManager,
 		OTPGenerator:    otpGenerator,
+		IDGenerator:     idGenerator,
 		AuthConfig:      cfg.Auth,
 		TaskDistributor: taskDistributor,
 	})
@@ -109,10 +123,10 @@ func Run(configPath string) { //nolint: funlen
 	}()
 
 	logger.Info("Server started")
-	gracefulShutdown(srv, connPool)
+	gracefulShutdown(srv, postgreSQLClient, rabbitMQClient)
 }
 
-func gracefulShutdown(srv *server.Server, connPool *pgxpool.Pool) {
+func gracefulShutdown(srv *server.Server, postgreSQLClient *pgxpool.Pool, rabbitMQClient *amqp.Connection) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
@@ -123,13 +137,16 @@ func gracefulShutdown(srv *server.Server, connPool *pgxpool.Pool) {
 	defer shutdown()
 
 	if err := srv.Stop(ctx); err != nil {
-		logger.Errorf("failed to stop server: %v", err)
+		logger.Errorf("Failed to stop server: %v", err)
 	}
 
 	logger.Info("Server stopped")
 
-	connPool.Close()
+	postgreSQLClient.Close()
 	logger.Info("Database disconnected")
+
+	rabbitMQClient.Close()
+	logger.Info("RabbitMQ disconnected")
 }
 
 func runDBMigration(migrationURL, dbSource string) error {
@@ -147,8 +164,9 @@ func runDBMigration(migrationURL, dbSource string) error {
 
 func runTaskProcessor(
 	redisOpt asynq.RedisClientOpt,
-	store repository.Store,
+	repos *repository.Repositories,
 	hasher hash.Hasher,
+	idGenerator identity.Generator,
 	cfg *config.Config,
 ) {
 	emailService := email.NewEmailService(
@@ -161,16 +179,17 @@ func runTaskProcessor(
 
 	taskProcessor := worker.NewRedisTaskProcessor(
 		redisOpt,
-		store,
+		repos,
 		hasher,
+		idGenerator,
 		emailService,
 		cfg.Email,
 		cfg.Auth,
 	)
 
-	logger.Info("start task processor")
+	logger.Info("Start task processor")
 
 	if err := taskProcessor.Start(); err != nil {
-		logger.Error("failed to start task processor")
+		logger.Error("Failed to start task processor")
 	}
 }

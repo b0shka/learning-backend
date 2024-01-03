@@ -41,7 +41,8 @@ swag:
 	swag init -g internal/app/app.go
 
 mock:
-	mockgen -destination=internal/repository/postgresql/mocks/mock_repository.go github.com/b0shka/backend/internal/repository/postgresql/sqlc Store
+# mockgen -destination=internal/repository/postgresql/mocks/mock_repository.go github.com/b0shka/backend/internal/repository/postgresql/sqlc Store
+	mockgen -source=internal/repository/postgresql/repository.go -destination=internal/repository/postgresql/mocks/mock_service.go
 	mockgen -source=internal/service/service.go -destination=internal/service/mocks/mock_service.go
 	mockgen -destination internal/worker/mocks/mock_worker.go github.com/b0shka/backend/internal/worker TaskDistributor
 

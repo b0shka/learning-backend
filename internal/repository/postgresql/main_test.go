@@ -9,12 +9,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var testStore Store
+var testRepos *Repositories
 
 func TestMain(m *testing.M) {
 	postgresSource := "postgresql://root:qwerty@localhost:5432/service?sslmode=disable"
 
-	connPool, err := pgxpool.New(context.Background(), postgresSource)
+	postgreSQLClient, err := pgxpool.New(context.Background(), postgresSource)
 	if err != nil {
 		logger.Errorf("cannot to connect to database: %s", err)
 	}
@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 	// 	return
 	// }
 
-	testStore = NewStore(connPool)
+	testRepos = NewRepositories(postgreSQLClient)
 
 	os.Exit(m.Run())
 }

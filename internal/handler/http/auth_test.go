@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/b0shka/backend/internal/domain"
+	domain_auth "github.com/b0shka/backend/internal/domain/auth"
 	"github.com/b0shka/backend/internal/service"
 	mock_service "github.com/b0shka/backend/internal/service/mocks"
+	"github.com/b0shka/backend/pkg/logger"
 	"github.com/b0shka/backend/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
@@ -22,36 +23,31 @@ import (
 
 var ErrInternalServerError = errors.New("test: internal server error")
 
-func requireBodyMatchTokens(t *testing.T, body *bytes.Buffer, token service.Tokens) {
-	data, err := io.ReadAll(body)
-	require.NoError(t, err)
-
-	var gotTokens service.Tokens
-	err = json.Unmarshal(data, &gotTokens)
+func requireBodyMatchTokens(t *testing.T, body *bytes.Buffer, token domain_auth.SignInOutput) {
+	var gotTokens domain_auth.SignInOutput
+	err := json.Unmarshal(body.Bytes(), &gotTokens)
+	logger.Info(gotTokens)
 
 	require.NoError(t, err)
 	require.Equal(t, token.AccessToken, gotTokens.AccessToken)
 	require.Equal(t, token.RefreshToken, gotTokens.RefreshToken)
 }
 
-func requireBodyMatchRefreshToken(t *testing.T, body *bytes.Buffer, token service.RefreshToken) {
-	data, err := io.ReadAll(body)
-	require.NoError(t, err)
-
-	var gotTokens service.RefreshToken
-	err = json.Unmarshal(data, &gotTokens)
+func requireBodyMatchRefreshToken(t *testing.T, body *bytes.Buffer, token domain_auth.RefreshTokenOutput) {
+	var gotTokens domain_auth.RefreshTokenOutput
+	err := json.Unmarshal(body.Bytes(), &gotTokens)
 
 	require.NoError(t, err)
 	require.Equal(t, token.AccessToken, gotTokens.AccessToken)
 }
 
 func TestHandler_sendCodeEmail(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockAuth, email string)
+	type mockBehavior func(s *mock_service.MockAuth, input domain_auth.SendCodeEmailInput)
 
 	tests := []struct {
 		name         string
 		body         gin.H
-		email        string
+		userInput    domain_auth.SendCodeEmailInput
 		mockBehavior mockBehavior
 		statusCode   int
 		responseBody string
@@ -61,9 +57,11 @@ func TestHandler_sendCodeEmail(t *testing.T) {
 			body: gin.H{
 				"email": "email@ya.ru",
 			},
-			email: "email@ya.ru",
-			mockBehavior: func(s *mock_service.MockAuth, email string) {
-				s.EXPECT().SendCodeEmail(gomock.Any(), email).Return(nil)
+			userInput: domain_auth.SendCodeEmailInput{
+				Email: "email@ya.ru",
+			},
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.SendCodeEmailInput) {
+				s.EXPECT().SendCodeEmail(gomock.Any(), input).Return(nil)
 			},
 			statusCode:   200,
 			responseBody: "",
@@ -73,7 +71,7 @@ func TestHandler_sendCodeEmail(t *testing.T) {
 			body: gin.H{
 				"email": "email@ya.ru",
 			},
-			mockBehavior: func(s *mock_service.MockAuth, email string) {
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.SendCodeEmailInput) {
 				s.EXPECT().SendCodeEmail(gomock.Any(), gomock.Any()).
 					Return(ErrInternalServerError)
 			},
@@ -85,7 +83,7 @@ func TestHandler_sendCodeEmail(t *testing.T) {
 			body: gin.H{
 				"email": "",
 			},
-			mockBehavior: func(s *mock_service.MockAuth, email string) {},
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.SendCodeEmailInput) {},
 			statusCode:   400,
 			responseBody: `{"message":"invalid input body"}`,
 		},
@@ -94,7 +92,7 @@ func TestHandler_sendCodeEmail(t *testing.T) {
 			body: gin.H{
 				"email": "email@",
 			},
-			mockBehavior: func(s *mock_service.MockAuth, email string) {},
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.SendCodeEmailInput) {},
 			statusCode:   400,
 			responseBody: `{"message":"invalid input body"}`,
 		},
@@ -106,7 +104,7 @@ func TestHandler_sendCodeEmail(t *testing.T) {
 			defer mockCtl.Finish()
 
 			authService := mock_service.NewMockAuth(mockCtl)
-			testCase.mockBehavior(authService, testCase.email)
+			testCase.mockBehavior(authService, testCase.userInput)
 
 			services := &service.Services{Auth: authService}
 			handler := Handler{services: services}
@@ -134,18 +132,23 @@ func TestHandler_sendCodeEmail(t *testing.T) {
 }
 
 func TestHandler_userSignIn(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockAuth, input domain.SignInRequest)
+	type mockBehavior func(s *mock_service.MockAuth, input domain_auth.SignInInput)
 
-	tokens := service.Tokens{
+	refreshToken, err := utils.RandomString(10)
+	require.NoError(t, err)
+	accessToken, err := utils.RandomString(10)
+	require.NoError(t, err)
+
+	tokens := domain_auth.SignInOutput{
 		SessionID:    uuid.New(),
-		RefreshToken: utils.RandomString(10),
-		AccessToken:  utils.RandomString(10),
+		RefreshToken: refreshToken,
+		AccessToken:  accessToken,
 	}
 
 	tests := []struct {
 		name          string
 		body          gin.H
-		userInput     domain.SignInRequest
+		userInput     domain_auth.SignInInput
 		mockBehavior  mockBehavior
 		checkResponse func(recoder *httptest.ResponseRecorder)
 	}{
@@ -153,13 +156,13 @@ func TestHandler_userSignIn(t *testing.T) {
 			name: "ok",
 			body: gin.H{
 				"email":       "email@ya.ru",
-				"secret_code": 123456,
+				"secret_code": "123456",
 			},
-			userInput: domain.SignInRequest{
+			userInput: domain_auth.SignInInput{
 				Email:      "email@ya.ru",
-				SecretCode: 123456,
+				SecretCode: "123456",
 			},
-			mockBehavior: func(s *mock_service.MockAuth, input domain.SignInRequest) {
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.SignInInput) {
 				s.EXPECT().
 					SignIn(gomock.Any(), input).
 					Return(tokens, nil)
@@ -173,12 +176,12 @@ func TestHandler_userSignIn(t *testing.T) {
 			name: "error sign in",
 			body: gin.H{
 				"email":       "email@ya.ru",
-				"secret_code": 123456,
+				"secret_code": "123456",
 			},
-			mockBehavior: func(s *mock_service.MockAuth, input domain.SignInRequest) {
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.SignInInput) {
 				s.EXPECT().
 					SignIn(gomock.Any(), gomock.Any()).
-					Return(service.Tokens{}, ErrInternalServerError)
+					Return(domain_auth.SignInOutput{}, ErrInternalServerError)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -193,12 +196,12 @@ func TestHandler_userSignIn(t *testing.T) {
 			name: "error invalid secret code",
 			body: gin.H{
 				"email":       "email@ya.ru",
-				"secret_code": 123456,
+				"secret_code": "123456",
 			},
-			mockBehavior: func(s *mock_service.MockAuth, input domain.SignInRequest) {
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.SignInInput) {
 				s.EXPECT().
 					SignIn(gomock.Any(), gomock.Any()).
-					Return(service.Tokens{}, domain.ErrSecretCodeInvalid)
+					Return(domain_auth.SignInOutput{}, domain.ErrSecretCodeInvalid)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusUnauthorized, recorder.Code)
@@ -213,12 +216,12 @@ func TestHandler_userSignIn(t *testing.T) {
 			name: "error expired secret code",
 			body: gin.H{
 				"email":       "email@ya.ru",
-				"secret_code": 123456,
+				"secret_code": "123456",
 			},
-			mockBehavior: func(s *mock_service.MockAuth, input domain.SignInRequest) {
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.SignInInput) {
 				s.EXPECT().
 					SignIn(gomock.Any(), gomock.Any()).
-					Return(service.Tokens{}, domain.ErrSecretCodeExpired)
+					Return(domain_auth.SignInOutput{}, domain.ErrSecretCodeExpired)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusUnauthorized, recorder.Code)
@@ -235,7 +238,7 @@ func TestHandler_userSignIn(t *testing.T) {
 				"email":       "",
 				"secret_code": nil,
 			},
-			mockBehavior: func(s *mock_service.MockAuth, input domain.SignInRequest) {},
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.SignInInput) {},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
 				require.Equal(
@@ -251,7 +254,7 @@ func TestHandler_userSignIn(t *testing.T) {
 				"email":       "email@ya.ru",
 				"secret_code": nil,
 			},
-			mockBehavior: func(s *mock_service.MockAuth, input domain.SignInRequest) {},
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.SignInInput) {},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
 				require.Equal(
@@ -265,9 +268,9 @@ func TestHandler_userSignIn(t *testing.T) {
 			name: "empty fields",
 			body: gin.H{
 				"email":       "",
-				"secret_code": 123456,
+				"secret_code": "123456",
 			},
-			mockBehavior: func(s *mock_service.MockAuth, input domain.SignInRequest) {},
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.SignInInput) {},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
 				require.Equal(
@@ -278,12 +281,28 @@ func TestHandler_userSignIn(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid input secret code",
+			name: "small length input secret code",
 			body: gin.H{
 				"email":       "email@ya.ru",
-				"secret_code": 12345,
+				"secret_code": "12345",
 			},
-			mockBehavior: func(s *mock_service.MockAuth, input domain.SignInRequest) {},
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.SignInInput) {},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+				require.Equal(
+					t,
+					`{"message":"invalid input body"}`,
+					recorder.Body.String(),
+				)
+			},
+		},
+		{
+			name: "large length input secret code",
+			body: gin.H{
+				"email":       "email@ya.ru",
+				"secret_code": "1234567",
+			},
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.SignInInput) {},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
 				require.Equal(
@@ -326,16 +345,19 @@ func TestHandler_userSignIn(t *testing.T) {
 }
 
 func TestHandler_refreshToken(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockAuth, refreshToken string)
+	type mockBehavior func(s *mock_service.MockAuth, input domain_auth.RefreshTokenInput)
 
-	token := service.RefreshToken{
-		AccessToken: utils.RandomString(10),
+	accessToken, err := utils.RandomString(10)
+	require.NoError(t, err)
+
+	token := domain_auth.RefreshTokenOutput{
+		AccessToken: accessToken,
 	}
 
 	tests := []struct {
 		name          string
 		body          gin.H
-		refreshToken  string
+		userInput     domain_auth.RefreshTokenInput
 		mockBehavior  mockBehavior
 		checkResponse func(recoder *httptest.ResponseRecorder)
 	}{
@@ -344,10 +366,12 @@ func TestHandler_refreshToken(t *testing.T) {
 			body: gin.H{
 				"refresh_token": "refresh_token",
 			},
-			refreshToken: "refresh_token",
-			mockBehavior: func(s *mock_service.MockAuth, refreshToken string) {
+			userInput: domain_auth.RefreshTokenInput{
+				RefreshToken: "refresh_token",
+			},
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.RefreshTokenInput) {
 				s.EXPECT().
-					RefreshToken(gomock.Any(), refreshToken).
+					RefreshToken(gomock.Any(), input).
 					Return(token, nil)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
@@ -360,11 +384,13 @@ func TestHandler_refreshToken(t *testing.T) {
 			body: gin.H{
 				"refresh_token": "refresh_token",
 			},
-			refreshToken: "refresh_token",
-			mockBehavior: func(s *mock_service.MockAuth, refreshToken string) {
+			userInput: domain_auth.RefreshTokenInput{
+				RefreshToken: "refresh_token",
+			},
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.RefreshTokenInput) {
 				s.EXPECT().
 					RefreshToken(gomock.Any(), gomock.Any()).
-					Return(service.RefreshToken{}, ErrInternalServerError)
+					Return(domain_auth.RefreshTokenOutput{}, ErrInternalServerError)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -380,11 +406,13 @@ func TestHandler_refreshToken(t *testing.T) {
 			body: gin.H{
 				"refresh_token": "refresh_token",
 			},
-			refreshToken: "refresh_token",
-			mockBehavior: func(s *mock_service.MockAuth, refreshToken string) {
+			userInput: domain_auth.RefreshTokenInput{
+				RefreshToken: "refresh_token",
+			},
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.RefreshTokenInput) {
 				s.EXPECT().
 					RefreshToken(gomock.Any(), gomock.Any()).
-					Return(service.RefreshToken{}, domain.ErrSessionNotFound)
+					Return(domain_auth.RefreshTokenOutput{}, domain.ErrSessionNotFound)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNotFound, recorder.Code)
@@ -400,11 +428,13 @@ func TestHandler_refreshToken(t *testing.T) {
 			body: gin.H{
 				"refresh_token": "refresh_token",
 			},
-			refreshToken: "refresh_token",
-			mockBehavior: func(s *mock_service.MockAuth, refreshToken string) {
+			userInput: domain_auth.RefreshTokenInput{
+				RefreshToken: "refresh_token",
+			},
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.RefreshTokenInput) {
 				s.EXPECT().
 					RefreshToken(gomock.Any(), gomock.Any()).
-					Return(service.RefreshToken{}, domain.ErrSessionBlocked)
+					Return(domain_auth.RefreshTokenOutput{}, domain.ErrSessionBlocked)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusUnauthorized, recorder.Code)
@@ -420,11 +450,13 @@ func TestHandler_refreshToken(t *testing.T) {
 			body: gin.H{
 				"refresh_token": "refresh_token",
 			},
-			refreshToken: "refresh_token",
-			mockBehavior: func(s *mock_service.MockAuth, refreshToken string) {
+			userInput: domain_auth.RefreshTokenInput{
+				RefreshToken: "refresh_token",
+			},
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.RefreshTokenInput) {
 				s.EXPECT().
 					RefreshToken(gomock.Any(), gomock.Any()).
-					Return(service.RefreshToken{}, domain.ErrIncorrectSessionUser)
+					Return(domain_auth.RefreshTokenOutput{}, domain.ErrIncorrectSessionUser)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusUnauthorized, recorder.Code)
@@ -440,11 +472,13 @@ func TestHandler_refreshToken(t *testing.T) {
 			body: gin.H{
 				"refresh_token": "refresh_token",
 			},
-			refreshToken: "refresh_token",
-			mockBehavior: func(s *mock_service.MockAuth, refreshToken string) {
+			userInput: domain_auth.RefreshTokenInput{
+				RefreshToken: "refresh_token",
+			},
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.RefreshTokenInput) {
 				s.EXPECT().
 					RefreshToken(gomock.Any(), gomock.Any()).
-					Return(service.RefreshToken{}, domain.ErrMismatchedSession)
+					Return(domain_auth.RefreshTokenOutput{}, domain.ErrMismatchedSession)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusUnauthorized, recorder.Code)
@@ -460,11 +494,13 @@ func TestHandler_refreshToken(t *testing.T) {
 			body: gin.H{
 				"refresh_token": "refresh_token",
 			},
-			refreshToken: "refresh_token",
-			mockBehavior: func(s *mock_service.MockAuth, refreshToken string) {
+			userInput: domain_auth.RefreshTokenInput{
+				RefreshToken: "refresh_token",
+			},
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.RefreshTokenInput) {
 				s.EXPECT().
 					RefreshToken(gomock.Any(), gomock.Any()).
-					Return(service.RefreshToken{}, domain.ErrExpiredToken)
+					Return(domain_auth.RefreshTokenOutput{}, domain.ErrExpiredToken)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusUnauthorized, recorder.Code)
@@ -480,11 +516,13 @@ func TestHandler_refreshToken(t *testing.T) {
 			body: gin.H{
 				"refresh_token": "refresh_token",
 			},
-			refreshToken: "refresh_token",
-			mockBehavior: func(s *mock_service.MockAuth, refreshToken string) {
+			userInput: domain_auth.RefreshTokenInput{
+				RefreshToken: "refresh_token",
+			},
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.RefreshTokenInput) {
 				s.EXPECT().
 					RefreshToken(gomock.Any(), gomock.Any()).
-					Return(service.RefreshToken{}, domain.ErrInvalidToken)
+					Return(domain_auth.RefreshTokenOutput{}, domain.ErrInvalidToken)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusUnauthorized, recorder.Code)
@@ -500,7 +538,7 @@ func TestHandler_refreshToken(t *testing.T) {
 			body: gin.H{
 				"refresh_token": "",
 			},
-			mockBehavior: func(s *mock_service.MockAuth, refreshToken string) {},
+			mockBehavior: func(s *mock_service.MockAuth, input domain_auth.RefreshTokenInput) {},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
 				require.Equal(
@@ -518,7 +556,7 @@ func TestHandler_refreshToken(t *testing.T) {
 			defer mockCtl.Finish()
 
 			authService := mock_service.NewMockAuth(mockCtl)
-			testCase.mockBehavior(authService, testCase.refreshToken)
+			testCase.mockBehavior(authService, testCase.userInput)
 
 			services := &service.Services{Auth: authService}
 			handler := Handler{services: services}

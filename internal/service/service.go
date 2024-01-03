@@ -4,35 +4,26 @@ import (
 	"context"
 
 	"github.com/b0shka/backend/internal/config"
-	"github.com/b0shka/backend/internal/domain"
-	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
+	domain_auth "github.com/b0shka/backend/internal/domain/auth"
+	domain_user "github.com/b0shka/backend/internal/domain/user"
+	repository "github.com/b0shka/backend/internal/repository/postgresql"
 	"github.com/b0shka/backend/internal/worker"
 	"github.com/b0shka/backend/pkg/auth"
 	"github.com/b0shka/backend/pkg/hash"
+	"github.com/b0shka/backend/pkg/identity"
 	"github.com/b0shka/backend/pkg/otp"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
-type Tokens struct {
-	SessionID    uuid.UUID `json:"session_id"`
-	RefreshToken string    `json:"refresh_token"`
-	AccessToken  string    `json:"access_token"`
-}
-
-type RefreshToken struct {
-	AccessToken string `json:"access_token"`
-}
-
 type Auth interface {
-	SendCodeEmail(ctx context.Context, email string) error
-	SignIn(ctx *gin.Context, inp domain.SignInRequest) (Tokens, error)
-	RefreshToken(ctx context.Context, refreshToken string) (RefreshToken, error)
+	SendCodeEmail(ctx context.Context, inp domain_auth.SendCodeEmailInput) error
+	SignIn(ctx *gin.Context, inp domain_auth.SignInInput) (domain_auth.SignInOutput, error)
+	RefreshToken(ctx context.Context, inp domain_auth.RefreshTokenInput) (domain_auth.RefreshTokenOutput, error)
 }
 
 type Users interface {
-	GetByID(ctx context.Context, id uuid.UUID) (repository.User, error)
-	Update(ctx context.Context, id uuid.UUID, user domain.UpdateUserRequest) error
+	GetByID(ctx context.Context, id uuid.UUID) (domain_user.User, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -42,10 +33,11 @@ type Services struct {
 }
 
 type Deps struct {
-	Repos           repository.Store
+	Repos           *repository.Repositories
 	Hasher          hash.Hasher
 	TokenManager    auth.Manager
 	OTPGenerator    otp.Generator
+	IDGenerator     identity.Generator
 	AuthConfig      config.AuthConfig
 	TaskDistributor worker.TaskDistributor
 }
@@ -53,15 +45,20 @@ type Deps struct {
 func NewServices(deps Deps) *Services {
 	return &Services{
 		Auth: NewAuthService(
-			deps.Repos,
+			deps.Repos.Users,
+			deps.Repos.Sessions,
+			deps.Repos.VerifyEmails,
 			deps.Hasher,
 			deps.TokenManager,
 			deps.OTPGenerator,
+			deps.IDGenerator,
 			deps.AuthConfig,
 			deps.TaskDistributor,
 		),
 		Users: NewUsersService(
-			deps.Repos,
+			deps.Repos.Users,
+			deps.Repos.Sessions,
+			deps.Repos.VerifyEmails,
 		),
 	}
 }

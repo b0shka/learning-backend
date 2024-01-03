@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 
 	"github.com/b0shka/backend/internal/config"
-	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
+	repository "github.com/b0shka/backend/internal/repository/postgresql"
 	"github.com/b0shka/backend/pkg/email"
 	"github.com/b0shka/backend/pkg/hash"
+	"github.com/b0shka/backend/pkg/identity"
 	"github.com/b0shka/backend/pkg/logger"
 	"github.com/hibiken/asynq"
 )
@@ -25,8 +26,9 @@ type TaskProcessor interface {
 
 type RedisTaskProcessor struct {
 	server       *asynq.Server
-	store        repository.Store
+	repos        *repository.Repositories
 	hasher       hash.Hasher
+	idGenerator  identity.Generator
 	emailService *email.EmailService
 	emailConfig  config.EmailConfig
 	authConfig   config.AuthConfig
@@ -34,8 +36,9 @@ type RedisTaskProcessor struct {
 
 func NewRedisTaskProcessor(
 	redisOpt asynq.RedisClientOpt,
-	store repository.Store,
+	repos *repository.Repositories,
 	hasher hash.Hasher,
+	idGenerator identity.Generator,
 	emailService *email.EmailService,
 	emailConfig config.EmailConfig,
 	authConfig config.AuthConfig,
@@ -64,8 +67,9 @@ func NewRedisTaskProcessor(
 
 	return &RedisTaskProcessor{
 		server:       server,
-		store:        store,
+		repos:        repos,
 		hasher:       hasher,
+		idGenerator:  idGenerator,
 		emailService: emailService,
 		emailConfig:  emailConfig,
 		authConfig:   authConfig,

@@ -12,6 +12,12 @@ import (
 )
 
 func TestAuthPaseto_NewPasetoManager(t *testing.T) {
+	validKey, err := utils.RandomString(chacha20poly1305.KeySize)
+	require.NoError(t, err)
+
+	invalidKey, err := utils.RandomString(chacha20poly1305.KeySize - 1)
+	require.NoError(t, err)
+
 	tests := []struct {
 		name      string
 		key       string
@@ -19,12 +25,12 @@ func TestAuthPaseto_NewPasetoManager(t *testing.T) {
 	}{
 		{
 			name:      "ok",
-			key:       utils.RandomString(chacha20poly1305.KeySize),
+			key:       validKey,
 			shouldErr: false,
 		},
 		{
 			name:      "invalid key length",
-			key:       utils.RandomString(chacha20poly1305.KeySize - 1),
+			key:       invalidKey,
 			shouldErr: true,
 		},
 		{
@@ -49,7 +55,9 @@ func TestAuthPaseto_NewPasetoManager(t *testing.T) {
 }
 
 func TestAuthPaseto_CreateTokenAndVerify(t *testing.T) {
-	manager, err := NewPasetoManager(utils.RandomString(chacha20poly1305.KeySize))
+	symmetricKey, err := utils.RandomString(chacha20poly1305.KeySize)
+	require.NoError(t, err)
+	manager, err := NewPasetoManager(symmetricKey)
 	require.NoError(t, err)
 
 	userID, err := uuid.NewRandom()

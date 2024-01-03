@@ -3,19 +3,26 @@ package http
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/b0shka/backend/internal/domain"
 	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func (h *Handler) initUsersRoutes(api *gin.RouterGroup) {
 	users := api.Group("/users").Use(userIdentity(h.tokenManager))
 	{
 		users.GET("/", h.getUserByID)
-		users.PATCH("/", h.updateUser)
 		users.DELETE("/", h.deleteUser)
 	}
+}
+
+type GetUserResponse struct {
+	ID        uuid.UUID `json:"id" binding:"required"`
+	Email     string    `json:"email" binding:"required"`
+	CreatedAt time.Time `json:"created_at" binding:"required"`
 }
 
 // @Summary		Get User
@@ -25,7 +32,7 @@ func (h *Handler) initUsersRoutes(api *gin.RouterGroup) {
 // @ModuleID		getUserById
 // @Accept			json
 // @Produce		json
-// @Success		200		{object}	domain.User
+// @Success		200		{object}	GetUserResponse
 // @Failure		400,404	{object}	response
 // @Failure		500		{object}	response
 // @Failure		default	{object}	response
@@ -57,50 +64,7 @@ func (h *Handler) getUserByID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, domain.GetUserResponse{
-		ID:        user.ID,
-		Email:     user.Email,
-		Username:  user.Username,
-		Photo:     user.Photo.String,
-		CreatedAt: user.CreatedAt,
-	})
-}
-
-// @Summary		Update User
-// @Security		UsersAuth
-// @Tags			account
-// @Description	update user account
-// @ModuleID		updateUser
-// @Accept			json
-// @Produce		json
-// @Param			input	body		domain.UserUpdate	true	"user update info"
-// @Success		200		{string}	string			"ok"
-// @Failure		400		{object}	response
-// @Failure		500		{object}	response
-// @Failure		default	{object}	response
-// @Router			/users/ [put]
-func (h *Handler) updateUser(c *gin.Context) {
-	userPayload, err := getUserPayload(c)
-	if err != nil {
-		newResponse(c, http.StatusInternalServerError, err.Error())
-
-		return
-	}
-
-	var inp domain.UpdateUserRequest
-	if err := c.BindJSON(&inp); err != nil {
-		newResponse(c, http.StatusBadRequest, domain.ErrInvalidInput.Error())
-
-		return
-	}
-
-	if err = h.services.Users.Update(c, userPayload.UserID, inp); err != nil {
-		newResponse(c, http.StatusInternalServerError, err.Error())
-
-		return
-	}
-
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, NewGetUserResponse(user))
 }
 
 // @Summary		Delete User

@@ -2,16 +2,16 @@ package service
 
 import (
 	"context"
-	"errors"
-	"strconv"
 	"time"
 
 	"github.com/b0shka/backend/internal/config"
 	"github.com/b0shka/backend/internal/domain"
-	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
+	domain_auth "github.com/b0shka/backend/internal/domain/auth"
+	repository "github.com/b0shka/backend/internal/repository/postgresql"
 	"github.com/b0shka/backend/internal/worker"
 	"github.com/b0shka/backend/pkg/auth"
 	"github.com/b0shka/backend/pkg/hash"
+	"github.com/b0shka/backend/pkg/identity"
 	"github.com/b0shka/backend/pkg/otp"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -23,54 +23,55 @@ const (
 )
 
 type AuthService struct {
-	repo            repository.Store
-	hasher          hash.Hasher
-	tokenManager    auth.Manager
-	otpGenerator    otp.Generator
-	authConfig      config.AuthConfig
-	taskDistributor worker.TaskDistributor
+	repoUsers        repository.Users
+	repoSessions     repository.Sessions
+	repoVerifyEmails repository.VerifyEmails
+	hasher           hash.Hasher
+	tokenManager     auth.Manager
+	otpGenerator     otp.Generator
+	idGenerator      identity.Generator
+	authConfig       config.AuthConfig
+	taskDistributor  worker.TaskDistributor
 }
 
 func NewAuthService(
-	repo repository.Store,
+	repoUsers repository.Users,
+	repoSessions repository.Sessions,
+	repoVerifyEmails repository.VerifyEmails,
 	hasher hash.Hasher,
 	tokenManager auth.Manager,
 	otpGenerator otp.Generator,
+	idGenerator identity.Generator,
 	authConfig config.AuthConfig,
 	taskDistributor worker.TaskDistributor,
 ) *AuthService {
 	return &AuthService{
-		repo:            repo,
-		hasher:          hasher,
-		tokenManager:    tokenManager,
-		otpGenerator:    otpGenerator,
-		authConfig:      authConfig,
-		taskDistributor: taskDistributor,
+		repoVerifyEmails: repoVerifyEmails,
+		repoSessions:     repoSessions,
+		repoUsers:        repoUsers,
+		hasher:           hasher,
+		tokenManager:     tokenManager,
+		otpGenerator:     otpGenerator,
+		idGenerator:      idGenerator,
+		authConfig:       authConfig,
+		taskDistributor:  taskDistributor,
 	}
 }
 
-func (s *AuthService) SendCodeEmail(ctx context.Context, email string) error {
-	_, err := s.repo.GetUserByEmail(ctx, email)
-	if err != nil && !errors.Is(err, repository.ErrRecordNotFound) {
-		return err
-	} else if errors.Is(err, repository.ErrRecordNotFound) {
-		userID, err := uuid.NewRandom()
-		if err != nil {
-			return err
-		}
+func (s *AuthService) SendCodeEmail(ctx context.Context, inp domain_auth.SendCodeEmailInput) error {
+	userParams := repository.CreateUserParams{
+		ID:    s.idGenerator.GenerateUUID(),
+		Email: inp.Email,
+	}
 
-		_, err = s.repo.CreateUser(ctx, repository.CreateUserParams{
-			ID:    userID,
-			Email: email,
-		})
-		if err != nil {
-			return err
-		}
+	_, err := s.repoUsers.Create(ctx, userParams)
+	if err != nil {
+		return err
 	}
 
 	secretCode := s.otpGenerator.RandomCode(s.authConfig.VerificationCodeLength)
 	taskPayload := &worker.PayloadSendVerifyEmail{
-		Email:      email,
+		Email:      inp.Email,
 		SecretCode: secretCode,
 	}
 	opts := []asynq.Option{
@@ -78,50 +79,43 @@ func (s *AuthService) SendCodeEmail(ctx context.Context, email string) error {
 		asynq.ProcessIn(time.Second),
 		asynq.Queue(worker.QueueCritical),
 	}
-	err = s.taskDistributor.DistributeTaskSendVerifyEmail(ctx, taskPayload, opts...)
 
-	return err
+	return s.taskDistributor.DistributeTaskSendVerifyEmail(ctx, taskPayload, opts...)
 }
 
-func (s *AuthService) SignIn(ctx *gin.Context, inp domain.SignInRequest) (Tokens, error) {
-	secretCodeStr := strconv.Itoa(int(inp.SecretCode))
-
-	secretCodeHash, err := s.hasher.HashCode(secretCodeStr)
+func (s *AuthService) SignIn(ctx *gin.Context, inp domain_auth.SignInInput) (domain_auth.SignInOutput, error) {
+	secretCodeHash, err := s.hasher.HashCode(inp.SecretCode)
 	if err != nil {
-		return Tokens{}, err
+		return domain_auth.SignInOutput{}, err
 	}
 
-	arg := repository.GetVerifyEmailParams{
+	verifyEmailParams := repository.GetVerifyEmailParams{
 		Email:      inp.Email,
 		SecretCode: secretCodeHash,
 	}
 
-	verifyEmail, err := s.repo.GetVerifyEmail(ctx, arg)
+	verifyEmail, err := s.repoVerifyEmails.Get(ctx, verifyEmailParams)
 	if err != nil {
-		if errors.Is(err, repository.ErrRecordNotFound) {
-			return Tokens{}, domain.ErrSecretCodeInvalid
-		}
-
-		return Tokens{}, err
+		return domain_auth.SignInOutput{}, err
 	}
 
 	if time.Now().After(verifyEmail.ExpiresAt) {
-		return Tokens{}, domain.ErrSecretCodeExpired
+		return domain_auth.SignInOutput{}, domain.ErrSecretCodeExpired
 	}
 
-	err = s.repo.DeleteVerifyEmailById(ctx, verifyEmail.ID)
+	err = s.repoVerifyEmails.DeleteByID(ctx, verifyEmail.ID)
 	if err != nil {
-		return Tokens{}, err
+		return domain_auth.SignInOutput{}, err
 	}
 
-	user, err := s.repo.GetUserByEmail(ctx, inp.Email)
+	user, err := s.repoUsers.GetByEmail(ctx, inp.Email)
 	if err != nil {
-		return Tokens{}, err
+		return domain_auth.SignInOutput{}, err
 	}
 
 	tokens, err := s.createSession(ctx, user.ID)
 	if err != nil {
-		return Tokens{}, err
+		return domain_auth.SignInOutput{}, err
 	}
 
 	taskPayload := &worker.PayloadSendLoginNotification{
@@ -138,14 +132,14 @@ func (s *AuthService) SignIn(ctx *gin.Context, inp domain.SignInRequest) (Tokens
 
 	err = s.taskDistributor.DistributeTaskSendLoginNotification(ctx, taskPayload, opts...)
 	if err != nil {
-		return Tokens{}, err
+		return domain_auth.SignInOutput{}, err
 	}
 
 	return tokens, nil
 }
 
-func (s *AuthService) createSession(ctx *gin.Context, id uuid.UUID) (Tokens, error) {
-	var res Tokens
+func (s *AuthService) createSession(ctx *gin.Context, id uuid.UUID) (domain_auth.SignInOutput, error) {
+	var res domain_auth.SignInOutput
 
 	refreshToken, refreshPayload, err := s.tokenManager.CreateToken(
 		id,
@@ -168,50 +162,53 @@ func (s *AuthService) createSession(ctx *gin.Context, id uuid.UUID) (Tokens, err
 
 	res.AccessToken = accessToken
 
-	session := repository.CreateSessionParams{
+	sessionParams := repository.CreateSessionParams{
 		ID:           refreshPayload.ID,
 		UserID:       id,
 		RefreshToken: res.RefreshToken,
 		UserAgent:    ctx.Request.UserAgent(),
-		ClientIp:     ctx.ClientIP(),
+		ClientIP:     ctx.ClientIP(),
 		IsBlocked:    false,
 		ExpiresAt:    refreshPayload.ExpiresAt,
 	}
 
-	if _, err := s.repo.CreateSession(ctx, session); err != nil {
-		return Tokens{}, err
+	if _, err := s.repoSessions.Create(ctx, sessionParams); err != nil {
+		return domain_auth.SignInOutput{}, err
 	}
 
 	return res, nil
 }
 
-func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (RefreshToken, error) {
-	var res RefreshToken
+func (s *AuthService) RefreshToken(
+	ctx context.Context,
+	inp domain_auth.RefreshTokenInput,
+) (domain_auth.RefreshTokenOutput, error) {
+	var res domain_auth.RefreshTokenOutput
 
-	refreshPayload, err := s.tokenManager.VerifyToken(refreshToken)
+	refreshPayload, err := s.tokenManager.VerifyToken(inp.RefreshToken)
 	if err != nil {
-		return RefreshToken{}, err
+		return domain_auth.RefreshTokenOutput{}, err
 	}
 
-	session, err := s.repo.GetSession(ctx, refreshPayload.ID)
+	session, err := s.repoSessions.Get(ctx, refreshPayload.ID)
 	if err != nil {
-		return RefreshToken{}, err
+		return domain_auth.RefreshTokenOutput{}, err
 	}
 
 	if session.IsBlocked {
-		return RefreshToken{}, domain.ErrSessionBlocked
+		return domain_auth.RefreshTokenOutput{}, domain.ErrSessionBlocked
 	}
 
 	if refreshPayload.UserID != session.UserID {
-		return RefreshToken{}, domain.ErrIncorrectSessionUser
+		return domain_auth.RefreshTokenOutput{}, domain.ErrIncorrectSessionUser
 	}
 
-	if refreshToken != session.RefreshToken {
-		return RefreshToken{}, domain.ErrMismatchedSession
+	if inp.RefreshToken != session.RefreshToken {
+		return domain_auth.RefreshTokenOutput{}, domain.ErrMismatchedSession
 	}
 
 	if time.Now().After(session.ExpiresAt) {
-		return RefreshToken{}, domain.ErrExpiredToken
+		return domain_auth.RefreshTokenOutput{}, domain.ErrExpiredToken
 	}
 
 	accessToken, _, err := s.tokenManager.CreateToken(
@@ -219,7 +216,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (Re
 		s.authConfig.JWT.RefreshTokenTTL,
 	)
 	if err != nil {
-		return RefreshToken{}, err
+		return domain_auth.RefreshTokenOutput{}, err
 	}
 
 	res.AccessToken = accessToken

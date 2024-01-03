@@ -4,52 +4,44 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/b0shka/backend/internal/domain"
+	domain_user "github.com/b0shka/backend/internal/domain/user"
 	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
 	"github.com/b0shka/backend/internal/service"
 	mock_service "github.com/b0shka/backend/internal/service/mocks"
 	"github.com/b0shka/backend/pkg/auth"
+	"github.com/b0shka/backend/pkg/identity"
 	"github.com/b0shka/backend/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/require"
 )
 
-func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, user domain.GetUserResponse) {
-	data, err := io.ReadAll(body)
-	require.NoError(t, err)
-
-	var gotUser domain.GetUserResponse
-	err = json.Unmarshal(data, &gotUser)
+func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, user domain_user.User) {
+	var gotUser domain_user.User
+	err := json.Unmarshal(body.Bytes(), &gotUser)
 
 	require.NoError(t, err)
 	require.Equal(t, user.ID, gotUser.ID)
 	require.Equal(t, user.Email, gotUser.Email)
-	require.Equal(t, user.Username, gotUser.Username)
-	require.Equal(t, user.Photo, gotUser.Photo)
 	require.NotEmpty(t, gotUser.CreatedAt)
 }
 
-func randomUser(t *testing.T) repository.User {
-	id, err := uuid.NewRandom()
+func randomUser(t *testing.T) domain_user.User {
+	idGenerator := identity.NewIDGenerator()
+
+	email, err := utils.RandomEmail()
 	require.NoError(t, err)
 
-	user := repository.User{
-		ID:       id,
-		Email:    utils.RandomEmail(),
-		Username: utils.RandomString(10),
-		Photo: pgtype.Text{
-			String: fmt.Sprintf("https://%s.png", utils.RandomString(7)),
-			Valid:  true,
-		},
+	user := domain_user.User{
+		ID:        idGenerator.GenerateUUID(),
+		Email:     email,
 		CreatedAt: time.Now(),
 	}
 
@@ -81,11 +73,9 @@ func TestHandler_getUserById(t *testing.T) {
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
-				requireBodyMatchUser(t, recorder.Body, domain.GetUserResponse{
+				requireBodyMatchUser(t, recorder.Body, domain_user.User{
 					ID:        user.ID,
 					Email:     user.Email,
-					Username:  user.Username,
-					Photo:     user.Photo.String,
 					CreatedAt: user.CreatedAt,
 				})
 			},
@@ -115,7 +105,7 @@ func TestHandler_getUserById(t *testing.T) {
 			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID) {
 				s.EXPECT().
 					GetByID(gomock.Any(), userID).
-					Return(repository.User{}, repository.ErrRecordNotFound)
+					Return(domain_user.User{}, repository.ErrRecordNotFound)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNotFound, recorder.Code)
@@ -135,7 +125,7 @@ func TestHandler_getUserById(t *testing.T) {
 			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID) {
 				s.EXPECT().
 					GetByID(gomock.Any(), userID).
-					Return(repository.User{}, ErrInternalServerError)
+					Return(domain_user.User{}, ErrInternalServerError)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -153,7 +143,10 @@ func TestHandler_getUserById(t *testing.T) {
 			mockCtl := gomock.NewController(t)
 			defer mockCtl.Finish()
 
-			tokenManager, err := auth.NewJWTManager(utils.RandomString(32))
+			secretKey, err := utils.RandomString(32)
+			require.NoError(t, err)
+
+			tokenManager, err := auth.NewJWTManager(secretKey)
 			require.NoError(t, err)
 
 			usersService := mock_service.NewMockUsers(mockCtl)
@@ -181,157 +174,6 @@ func TestHandler_getUserById(t *testing.T) {
 
 			// require.Equal(t, testCase.statusCode, recorder.Code)
 			// require.Equal(t, testCase.responseBody, recorder.Body.String())
-		})
-	}
-}
-
-func TestHandler_updateUser(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UpdateUserRequest)
-
-	userID, err := uuid.NewRandom()
-	require.NoError(t, err)
-
-	tests := []struct {
-		name         string
-		body         gin.H
-		userID       uuid.UUID
-		user         domain.UpdateUserRequest
-		setupAuth    func(t *testing.T, request *http.Request, tokenManager auth.Manager)
-		mockBehavior mockBehavior
-		statusCode   int
-		responseBody string
-	}{
-		{
-			name: "ok",
-			body: gin.H{
-				"username": "vanya",
-				"photo":    "",
-			},
-			userID: userID,
-			user: domain.UpdateUserRequest{
-				Username: "vanya",
-				Photo:    "",
-			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
-				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userID, time.Minute)
-			},
-			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UpdateUserRequest) {
-				s.EXPECT().Update(gomock.Any(), userID, user).Return(nil)
-			},
-			statusCode:   200,
-			responseBody: "",
-		},
-		{
-			name: "ok",
-			body: gin.H{
-				"username": "vanya",
-				"photo":    "https://photo.png",
-			},
-			userID: userID,
-			user: domain.UpdateUserRequest{
-				Username: "vanya",
-				Photo:    "https://photo.png",
-			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
-				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userID, time.Minute)
-			},
-			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UpdateUserRequest) {
-				s.EXPECT().Update(gomock.Any(), userID, user).Return(nil)
-			},
-			statusCode:   200,
-			responseBody: "",
-		},
-		{
-			name: "no authorization",
-			body: gin.H{
-				"username": "vanya",
-				"photo":    "https://photo.png",
-			},
-			userID: userID,
-			user: domain.UpdateUserRequest{
-				Username: "vanya",
-				Photo:    "",
-			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {},
-			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UpdateUserRequest) {
-				s.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			},
-			statusCode:   401,
-			responseBody: `{"message":"empty authorization header"}`,
-		},
-		{
-			name: "error update user",
-			body: gin.H{
-				"username": "vanya",
-				"photo":    "",
-			},
-			userID: userID,
-			user: domain.UpdateUserRequest{
-				Username: "vanya",
-				Photo:    "",
-			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
-				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userID, time.Minute)
-			},
-			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UpdateUserRequest) {
-				s.EXPECT().Update(gomock.Any(), userID, user).Return(ErrInternalServerError)
-			},
-			statusCode:   500,
-			responseBody: fmt.Sprintf(`{"message":"%s"}`, ErrInternalServerError),
-		},
-		{
-			name: "empty fields",
-			body: gin.H{
-				"username": "",
-				"photo":    "",
-			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenManager auth.Manager) {
-				addAuthorizationHeader(t, request, tokenManager, authorizationTypeBearer, userID, time.Minute)
-			},
-			mockBehavior: func(s *mock_service.MockUsers, userID uuid.UUID, user domain.UpdateUserRequest) {
-				s.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			},
-			statusCode:   400,
-			responseBody: `{"message":"invalid input body"}`,
-		},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			mockCtl := gomock.NewController(t)
-			defer mockCtl.Finish()
-
-			tokenManager, err := auth.NewJWTManager(utils.RandomString(32))
-			require.NoError(t, err)
-
-			usersService := mock_service.NewMockUsers(mockCtl)
-			testCase.mockBehavior(usersService, testCase.userID, testCase.user)
-
-			services := &service.Services{Users: usersService}
-			handler := Handler{services: services}
-
-			router := gin.Default()
-			router.POST(
-				"/update",
-				userIdentity(tokenManager),
-				handler.updateUser,
-			)
-
-			data, err := json.Marshal(testCase.body)
-			require.NoError(t, err)
-
-			recorder := httptest.NewRecorder()
-			req := httptest.NewRequest(
-				http.MethodPost,
-				"/update",
-				bytes.NewReader(data),
-			)
-
-			testCase.setupAuth(t, req, tokenManager)
-			router.ServeHTTP(recorder, req)
-
-			require.Equal(t, testCase.statusCode, recorder.Code)
-			require.Equal(t, testCase.responseBody, recorder.Body.String())
 		})
 	}
 }
@@ -403,7 +245,10 @@ func TestHandler_deleteUser(t *testing.T) {
 			mockCtl := gomock.NewController(t)
 			defer mockCtl.Finish()
 
-			tokenManager, err := auth.NewJWTManager(utils.RandomString(32))
+			secretKey, err := utils.RandomString(32)
+			require.NoError(t, err)
+
+			tokenManager, err := auth.NewJWTManager(secretKey)
 			require.NoError(t, err)
 
 			usersService := mock_service.NewMockUsers(mockCtl)

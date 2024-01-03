@@ -9,6 +9,12 @@ import (
 )
 
 func TestHash_NewSHA256Hasher(t *testing.T) {
+	validSalt, err := utils.RandomString(32)
+	require.NoError(t, err)
+
+	invalidSalt, err := utils.RandomString(31)
+	require.NoError(t, err)
+
 	tests := []struct {
 		name      string
 		salt      string
@@ -16,12 +22,12 @@ func TestHash_NewSHA256Hasher(t *testing.T) {
 	}{
 		{
 			name:      "ok",
-			salt:      utils.RandomString(32),
+			salt:      validSalt,
 			shouldErr: false,
 		},
 		{
 			name:      "invalid salt length",
-			salt:      utils.RandomString(31),
+			salt:      invalidSalt,
 			shouldErr: true,
 		},
 		{
@@ -46,9 +52,12 @@ func TestHash_NewSHA256Hasher(t *testing.T) {
 }
 
 func TestHash_HashCode(t *testing.T) {
-	code := utils.RandomInt(100000, 999999)
+	code, err := utils.RandomInt(100000, 999999)
+	require.NoError(t, err)
 
-	hasher, err := NewSHA256Hasher(utils.RandomString(32))
+	salt, err := utils.RandomString(32)
+	require.NoError(t, err)
+	hasher, err := NewSHA256Hasher(salt)
 	require.NoError(t, err)
 
 	hashCode, err := hasher.HashCode(strconv.Itoa(int(code)))

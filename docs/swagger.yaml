@@ -1,6 +1,6 @@
 basePath: /api/v1/
 definitions:
-  domain.User:
+  http.GetUserResponse:
     properties:
       created_at:
         type: string
@@ -8,76 +8,53 @@ definitions:
         type: string
       id:
         type: string
-      photo:
-        type: string
-      username:
-        type: string
     required:
     - created_at
     - email
     - id
-    - username
     type: object
-  domain.UserSignIn:
-    properties:
-      email:
-        type: string
-      secret_code:
-        minimum: 100000
-        type: integer
-    required:
-    - email
-    - secret_code
-    type: object
-  domain.UserUpdate:
-    properties:
-      photo:
-        type: string
-      username:
-        type: string
-    required:
-    - username
-    type: object
-  http.refreshTokenRequest:
+  http.RefreshTokenRequest:
     properties:
       refresh_token:
         type: string
     required:
     - refresh_token
     type: object
-  http.refreshTokenResponse:
+  http.RefreshTokenResponse:
     properties:
       access_token:
         type: string
-      access_token_expires_at:
-        type: string
     type: object
-  http.response:
-    properties:
-      message:
-        type: string
-    type: object
-  http.userSendCodeRequest:
+  http.SendCodeRequest:
     properties:
       email:
         type: string
     required:
     - email
     type: object
-  http.userSignInResponse:
+  http.SignInRequest:
+    properties:
+      email:
+        type: string
+      secret_code:
+        type: string
+    required:
+    - email
+    - secret_code
+    type: object
+  http.SignInResponse:
     properties:
       access_token:
         type: string
-      access_token_expires_at:
-        type: string
       refresh_token:
-        type: string
-      refresh_token_expires_at:
         type: string
       session_id:
         type: string
-      user:
-        $ref: '#/definitions/domain.User'
+    type: object
+  http.response:
+    properties:
+      message:
+        type: string
     type: object
 host: localhost:8080
 info:
@@ -129,7 +106,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/domain.User'
+            $ref: '#/definitions/http.GetUserResponse'
         "400":
           description: Bad Request
           schema:
@@ -151,41 +128,6 @@ paths:
       summary: Get User
       tags:
       - account
-    put:
-      consumes:
-      - application/json
-      description: update user account
-      parameters:
-      - description: user update info
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/domain.UserUpdate'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: ok
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/http.response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/http.response'
-        default:
-          description: ""
-          schema:
-            $ref: '#/definitions/http.response'
-      security:
-      - UsersAuth: []
-      summary: Update User
-      tags:
-      - account
   /users/auth/refresh:
     post:
       consumes:
@@ -197,14 +139,14 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/http.refreshTokenRequest'
+          $ref: '#/definitions/http.RefreshTokenRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/http.refreshTokenResponse'
+            $ref: '#/definitions/http.RefreshTokenResponse'
         "400":
           description: Bad Request
           schema:
@@ -239,7 +181,7 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/http.userSendCodeRequest'
+          $ref: '#/definitions/http.SendCodeRequest'
       produces:
       - application/json
       responses:
@@ -273,14 +215,14 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/domain.UserSignIn'
+          $ref: '#/definitions/http.SignInRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/http.userSignInResponse'
+            $ref: '#/definitions/http.SignInResponse'
         "400":
           description: Bad Request
           schema:

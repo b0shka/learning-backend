@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	domain_auth "github.com/b0shka/backend/internal/domain/auth"
+	domain_user "github.com/b0shka/backend/internal/domain/user"
 	"github.com/b0shka/backend/pkg/hash"
 	"github.com/b0shka/backend/pkg/otp"
 	"github.com/b0shka/backend/pkg/utils"
@@ -12,11 +14,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createRandomVerifyEmail(t *testing.T, user User) VerifyEmail {
+func createRandomVerifyEmail(t *testing.T, user domain_user.User) domain_auth.VerifyEmail {
 	verifyEmailID, err := uuid.NewRandom()
 	require.NoError(t, err)
 
-	hasher, err := hash.NewSHA256Hasher(utils.RandomString(32))
+	salt, err := utils.RandomString(32)
+	require.NoError(t, err)
+
+	hasher, err := hash.NewSHA256Hasher(salt)
 	require.NoError(t, err)
 
 	otpGenerator := otp.NewTOTPGenerator()
@@ -32,7 +37,7 @@ func createRandomVerifyEmail(t *testing.T, user User) VerifyEmail {
 		ExpiresAt:  time.Now().Add(time.Minute * 5),
 	}
 
-	verifyEmail, err := testStore.CreateVerifyEmail(context.Background(), arg)
+	verifyEmail, err := testRepos.VerifyEmails.Create(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, verifyEmail)
 
@@ -53,7 +58,7 @@ func TestRepository_GetVerifyEmail(t *testing.T) {
 		SecretCode: verifyEmail1.SecretCode,
 	}
 
-	verifyEmail2, err := testStore.GetVerifyEmail(context.Background(), arg)
+	verifyEmail2, err := testRepos.VerifyEmails.Get(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, verifyEmail2)
 
@@ -66,13 +71,13 @@ func TestRepository_GetVerifyEmail(t *testing.T) {
 func TestRepository_DeleteVerifyEmailById(t *testing.T) {
 	user := createRandomUser(t)
 	verifyEmail := createRandomVerifyEmail(t, user)
-	err := testStore.DeleteVerifyEmailById(context.Background(), verifyEmail.ID)
+	err := testRepos.VerifyEmails.DeleteByID(context.Background(), verifyEmail.ID)
 	require.NoError(t, err)
 }
 
 func TestRepository_DeleteVerifyEmailByEmail(t *testing.T) {
 	user := createRandomUser(t)
 	createRandomVerifyEmail(t, user)
-	err := testStore.DeleteVerifyEmailByEmail(context.Background(), user.Email)
+	err := testRepos.VerifyEmails.DeleteByEmail(context.Background(), user.Email)
 	require.NoError(t, err)
 }

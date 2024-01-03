@@ -1,21 +1,19 @@
 CREATE TABLE "users" (
-  "id" uuid PRIMARY KEY,
+  "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   "email" varchar UNIQUE NOT NULL,
-  "username" varchar UNIQUE NOT NULL,
-  "photo" varchar,
   "created_at" timestamptz NOT NULL DEFAULT (now())
 );
 
 CREATE TABLE "verify_emails" (
-  "id" uuid PRIMARY KEY,
+  "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   "email" varchar NOT NULL,
   "secret_code" varchar NOT NULL,
   "expires_at" timestamptz NOT NULL
 );
 
 CREATE TABLE "sessions" (
-  "id" uuid PRIMARY KEY,
-  "user_id" uuid NOT NULL,
+  "id" UUID PRIMARY KEY,
+  "user_id" UUID NOT NULL,
   "refresh_token" varchar UNIQUE NOT NULL,
   "user_agent" varchar NOT NULL,
   "client_ip" varchar NOT NULL,

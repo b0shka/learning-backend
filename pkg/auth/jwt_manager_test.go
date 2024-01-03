@@ -12,6 +12,12 @@ import (
 )
 
 func TestAuthJWT_NewJWTManager(t *testing.T) {
+	validKey, err := utils.RandomString(32)
+	require.NoError(t, err)
+
+	invalidKey, err := utils.RandomString(31)
+	require.NoError(t, err)
+
 	tests := []struct {
 		name      string
 		key       string
@@ -19,12 +25,12 @@ func TestAuthJWT_NewJWTManager(t *testing.T) {
 	}{
 		{
 			name:      "ok",
-			key:       utils.RandomString(32),
+			key:       validKey,
 			shouldErr: false,
 		},
 		{
 			name:      "invalid key length",
-			key:       utils.RandomString(31),
+			key:       invalidKey,
 			shouldErr: true,
 		},
 		{
@@ -49,7 +55,9 @@ func TestAuthJWT_NewJWTManager(t *testing.T) {
 }
 
 func TestAuthJWT_CreateTokenAndVerify(t *testing.T) {
-	manager, err := NewJWTManager(utils.RandomString(32))
+	secretKey, err := utils.RandomString(32)
+	require.NoError(t, err)
+	manager, err := NewJWTManager(secretKey)
 	require.NoError(t, err)
 
 	userID, err := uuid.NewRandom()

@@ -8,9 +8,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	domain "github.com/b0shka/backend/internal/domain"
-	repository "github.com/b0shka/backend/internal/repository/postgresql/sqlc"
-	service "github.com/b0shka/backend/internal/service"
+	auth "github.com/b0shka/backend/internal/domain/auth"
+	user "github.com/b0shka/backend/internal/domain/user"
 	gin "github.com/gin-gonic/gin"
 	gomock "github.com/golang/mock/gomock"
 	uuid "github.com/google/uuid"
@@ -40,39 +39,39 @@ func (m *MockAuth) EXPECT() *MockAuthMockRecorder {
 }
 
 // RefreshToken mocks base method.
-func (m *MockAuth) RefreshToken(ctx context.Context, refreshToken string) (service.RefreshToken, error) {
+func (m *MockAuth) RefreshToken(ctx context.Context, inp auth.RefreshTokenInput) (auth.RefreshTokenOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RefreshToken", ctx, refreshToken)
-	ret0, _ := ret[0].(service.RefreshToken)
+	ret := m.ctrl.Call(m, "RefreshToken", ctx, inp)
+	ret0, _ := ret[0].(auth.RefreshTokenOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RefreshToken indicates an expected call of RefreshToken.
-func (mr *MockAuthMockRecorder) RefreshToken(ctx, refreshToken interface{}) *gomock.Call {
+func (mr *MockAuthMockRecorder) RefreshToken(ctx, inp interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshToken", reflect.TypeOf((*MockAuth)(nil).RefreshToken), ctx, refreshToken)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshToken", reflect.TypeOf((*MockAuth)(nil).RefreshToken), ctx, inp)
 }
 
 // SendCodeEmail mocks base method.
-func (m *MockAuth) SendCodeEmail(ctx context.Context, email string) error {
+func (m *MockAuth) SendCodeEmail(ctx context.Context, inp auth.SendCodeEmailInput) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendCodeEmail", ctx, email)
+	ret := m.ctrl.Call(m, "SendCodeEmail", ctx, inp)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SendCodeEmail indicates an expected call of SendCodeEmail.
-func (mr *MockAuthMockRecorder) SendCodeEmail(ctx, email interface{}) *gomock.Call {
+func (mr *MockAuthMockRecorder) SendCodeEmail(ctx, inp interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendCodeEmail", reflect.TypeOf((*MockAuth)(nil).SendCodeEmail), ctx, email)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendCodeEmail", reflect.TypeOf((*MockAuth)(nil).SendCodeEmail), ctx, inp)
 }
 
 // SignIn mocks base method.
-func (m *MockAuth) SignIn(ctx *gin.Context, inp domain.SignInRequest) (service.Tokens, error) {
+func (m *MockAuth) SignIn(ctx *gin.Context, inp auth.SignInInput) (auth.SignInOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SignIn", ctx, inp)
-	ret0, _ := ret[0].(service.Tokens)
+	ret0, _ := ret[0].(auth.SignInOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -121,10 +120,10 @@ func (mr *MockUsersMockRecorder) Delete(ctx, id interface{}) *gomock.Call {
 }
 
 // GetByID mocks base method.
-func (m *MockUsers) GetByID(ctx context.Context, id uuid.UUID) (repository.User, error) {
+func (m *MockUsers) GetByID(ctx context.Context, id uuid.UUID) (user.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByID", ctx, id)
-	ret0, _ := ret[0].(repository.User)
+	ret0, _ := ret[0].(user.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -133,18 +132,4 @@ func (m *MockUsers) GetByID(ctx context.Context, id uuid.UUID) (repository.User,
 func (mr *MockUsersMockRecorder) GetByID(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockUsers)(nil).GetByID), ctx, id)
-}
-
-// Update mocks base method.
-func (m *MockUsers) Update(ctx context.Context, id uuid.UUID, user domain.UpdateUserRequest) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update", ctx, id, user)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Update indicates an expected call of Update.
-func (mr *MockUsersMockRecorder) Update(ctx, id, user interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockUsers)(nil).Update), ctx, id, user)
 }

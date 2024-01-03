@@ -84,7 +84,10 @@ func TestHandler_userIDentity(t *testing.T) {
 
 	for _, testCase := range testTable {
 		t.Run(testCase.name, func(t *testing.T) {
-			tokenManager, err := auth.NewPasetoManager(utils.RandomString(32))
+			symmetricKey, err := utils.RandomString(32)
+			require.NoError(t, err)
+
+			tokenManager, err := auth.NewPasetoManager(symmetricKey)
 			require.NoError(t, err)
 
 			router := gin.Default()
@@ -119,8 +122,11 @@ func TestGetUserPayload(t *testing.T) {
 	normalContext := &gin.Context{}
 	normalContext.Set(userCtx, payload)
 
+	key, err := utils.RandomString(10)
+	require.NoError(t, err)
+
 	invalidContext := &gin.Context{}
-	invalidContext.Set(userCtx, utils.RandomString(10))
+	invalidContext.Set(userCtx, key)
 
 	tests := []struct {
 		name      string

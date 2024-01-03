@@ -56,7 +56,7 @@ func TestInitConfig(t *testing.T) {
 					emailServiceName:     "Service",
 					emailServiceAddress:  "service@gmail.com",
 					emailServicePassword: "qwerty123",
-					secretKey:            "sercet_key",
+					secretKey:            "secret_key",
 					codedSalt:            "code_salt",
 					appEnv:               "local",
 					httpHost:             "localhost",
@@ -67,6 +67,8 @@ func TestInitConfig(t *testing.T) {
 				Postgres: PostgresConfig{
 					URL:          "postgresql://root:qwerty@localhost:5432/service?sslmode=disable",
 					MigrationURL: "file://internal/repository/postgresql/migration",
+					MaxAttempts:  5,
+					MaxDelay:     time.Second * 3,
 				},
 				Redis: RedisConfig{
 					Address: "0.0.0.0:6379",
@@ -91,12 +93,12 @@ func TestInitConfig(t *testing.T) {
 					},
 					SercetCodeLifetime:     time.Minute * 5,
 					VerificationCodeLength: 6,
-					SecretKey:              "sercet_key",
+					SecretKey:              "secret_key",
 					CodeSalt:               "code_salt",
 				},
 				HTTP: HTTPConfig{
 					Host:               "localhost",
-					Port:               "80",
+					Port:               "8080",
 					MaxHeaderMegabytes: 1,
 					ReadTimeout:        time.Second * 10,
 					WriteTimeout:       time.Second * 10,
@@ -120,7 +122,7 @@ func TestInitConfig(t *testing.T) {
 				return
 			}
 			if !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("InitConfig() got = %v, want %v", got, testCase.want)
+				t.Errorf("InitConfig() got = %v, want = %v", got, testCase.want)
 			}
 		})
 	}

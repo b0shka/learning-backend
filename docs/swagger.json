@@ -31,7 +31,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/domain.User"
+                            "$ref": "#/definitions/http.GetUserResponse"
                         }
                     },
                     "400": {
@@ -42,61 +42,6 @@
                     },
                     "404": {
                         "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/http.response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/http.response"
-                        }
-                    },
-                    "default": {
-                        "description": "",
-                        "schema": {
-                            "$ref": "#/definitions/http.response"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "UsersAuth": []
-                    }
-                ],
-                "description": "update user account",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "account"
-                ],
-                "summary": "Update User",
-                "parameters": [
-                    {
-                        "description": "user update info",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/domain.UserUpdate"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "ok",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/http.response"
                         }
@@ -186,7 +131,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/http.refreshTokenRequest"
+                            "$ref": "#/definitions/http.RefreshTokenRequest"
                         }
                     }
                 ],
@@ -194,7 +139,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/http.refreshTokenResponse"
+                            "$ref": "#/definitions/http.RefreshTokenResponse"
                         }
                     },
                     "400": {
@@ -250,7 +195,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/http.userSendCodeRequest"
+                            "$ref": "#/definitions/http.SendCodeRequest"
                         }
                     }
                 ],
@@ -302,7 +247,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/domain.UserSignIn"
+                            "$ref": "#/definitions/http.SignInRequest"
                         }
                     }
                 ],
@@ -310,7 +255,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/http.userSignInResponse"
+                            "$ref": "#/definitions/http.SignInResponse"
                         }
                     },
                     "400": {
@@ -342,13 +287,12 @@
         }
     },
     "definitions": {
-        "domain.User": {
+        "http.GetUserResponse": {
             "type": "object",
             "required": [
                 "created_at",
                 "email",
-                "id",
-                "username"
+                "id"
             ],
             "properties": {
                 "created_at": {
@@ -359,46 +303,10 @@
                 },
                 "id": {
                     "type": "string"
-                },
-                "photo": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
                 }
             }
         },
-        "domain.UserSignIn": {
-            "type": "object",
-            "required": [
-                "email",
-                "secret_code"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "secret_code": {
-                    "type": "integer",
-                    "minimum": 100000
-                }
-            }
-        },
-        "domain.UserUpdate": {
-            "type": "object",
-            "required": [
-                "username"
-            ],
-            "properties": {
-                "photo": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "http.refreshTokenRequest": {
+        "http.RefreshTokenRequest": {
             "type": "object",
             "required": [
                 "refresh_token"
@@ -409,26 +317,15 @@
                 }
             }
         },
-        "http.refreshTokenResponse": {
+        "http.RefreshTokenResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
                     "type": "string"
-                },
-                "access_token_expires_at": {
-                    "type": "string"
                 }
             }
         },
-        "http.response": {
-            "type": "object",
-            "properties": {
-                "message": {
-                    "type": "string"
-                }
-            }
-        },
-        "http.userSendCodeRequest": {
+        "http.SendCodeRequest": {
             "type": "object",
             "required": [
                 "email"
@@ -439,26 +336,40 @@
                 }
             }
         },
-        "http.userSignInResponse": {
+        "http.SignInRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "secret_code"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "secret_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.SignInResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
                     "type": "string"
                 },
-                "access_token_expires_at": {
-                    "type": "string"
-                },
                 "refresh_token": {
-                    "type": "string"
-                },
-                "refresh_token_expires_at": {
                     "type": "string"
                 },
                 "session_id": {
                     "type": "string"
-                },
-                "user": {
-                    "$ref": "#/definitions/domain.User"
+                }
+            }
+        },
+        "http.response": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
                 }
             }
         }
