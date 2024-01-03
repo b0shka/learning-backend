@@ -8,7 +8,7 @@ TAG = latest
 DB_URL=postgresql://root:qwerty@localhost:5432/service?sslmode=disable
 MIGRATION_URL=internal/repository/postgresql/migration
 
-.PHONY: build start test lint swag mock docker-build docker-run docker-push docker-run-postgres docker-run-redis migrateup migratedown sqlc
+.PHONY: build start test lint swag mock docker-build docker-run docker-push docker-run-postgres docker-run-redis migrateup migratedown
 .DEFAULT_GOAL := start
 
 build:
@@ -41,7 +41,6 @@ swag:
 	swag init -g internal/app/app.go
 
 mock:
-# mockgen -destination=internal/repository/postgresql/mocks/mock_repository.go github.com/b0shka/backend/internal/repository/postgresql/sqlc Store
 	mockgen -source=internal/repository/postgresql/repository.go -destination=internal/repository/postgresql/mocks/mock_service.go
 	mockgen -source=internal/service/service.go -destination=internal/service/mocks/mock_service.go
 	mockgen -destination internal/worker/mocks/mock_worker.go github.com/b0shka/backend/internal/worker TaskDistributor
@@ -70,5 +69,5 @@ migrateup:
 migratedown:
 	migrate -path ${MIGRATION_URL} -database ${DB_URL} -verbose down
 
-sqlc:
-	sqlc generate
+# sqlc:
+# 	sqlc generate

@@ -11,7 +11,6 @@
 - Go 1.21
 - Docker & Docker Compose
 - mockgen (used to start mock generation for unit tests)
-- sqlc (used to run code generation for working with PostgreSQL)
 - golang-migrate (used to run migrations in the database)
 - golangci-lint (used to run code checks)
 - swag (used to re-generate swagger documentation)
